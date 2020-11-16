@@ -2,12 +2,12 @@ import math
 import re
 import urllib
 
-from . import logger
-from .infoextractor import InfoExtractor
-from .utils import try_get, uppercase_escape, int_or_none, str_or_none, url_or_none, ExtractorError
+from ._base import InfoExtractor
+from thumbframes_dl import logger
+from thumbframes_dl.ytdl_utils.utils import try_get, uppercase_escape, int_or_none, str_or_none, ExtractorError
 
 
-class YouTubeIE(InfoExtractor):
+class YouTubeFrames(InfoExtractor):
     _YOUTUBE_URL = 'https://www.youtube.com'
     _VIDEO_WEBPAGE_URL = _YOUTUBE_URL + '/watch?v={VIDEO_ID}'
     _VIDEO_INFO_URL = _YOUTUBE_URL + '/get_video_info?video_id={VIDEO_ID}&el=detailpage'
@@ -73,7 +73,7 @@ class YouTubeIE(InfoExtractor):
                      (?(1).+)?                                                # if we found the ID, everything can follow
                      $"""
 
-    def extract_id(self, url):
+    def _extract_id(self, url):
         mobj = re.match(self._VALID_URL, url, re.VERBOSE)
         if mobj is None:
             raise ExtractorError('Invalid URL: %s' % url, expected=True)
@@ -98,7 +98,7 @@ class YouTubeIE(InfoExtractor):
             return self._parse_json(
                 uppercase_escape(config), video_id, fatal=False)
 
-    def extract_player_response(self, player_response, video_id):
+    def _extract_player_response(self, player_response, video_id):
         pl_response = str_or_none(player_response)
         if not pl_response:
             return
@@ -115,7 +115,7 @@ class YouTubeIE(InfoExtractor):
     # Try to extract storyboard spec from video_info
     def _extract_sb_spec_from_video_info(self, video_id, video_info):
         pl_response = video_info.get('player_response', [None])
-        player_response = self.extract_player_response(pl_response, video_id)
+        player_response = self._extract_player_response(pl_response, video_id)
         if player_response:
             sb_spec = self._extract_sb_spec(player_response)
         else:
@@ -126,7 +126,7 @@ class YouTubeIE(InfoExtractor):
     # Try to extract storyboard spec from video_webpage
     def _extract_sb_spec_from_video_webpage(self, video_id, video_webpage):
         player_config = self._get_ytplayer_config(video_id, video_webpage)
-        player_response = self.extract_player_response(
+        player_response = self._extract_player_response(
             player_config['args'].get('player_response'),
             video_id)
 
@@ -142,7 +142,8 @@ class YouTubeIE(InfoExtractor):
         for i, params in enumerate(s_parts[1:]):
             storyboard_attrib = params.split('#')
             if len(storyboard_attrib) != 8:
-                logger.warning('Unable to extract storyboard')
+                logger.warning('Unable to extract thumbframe')
+                self.errors.append('extraction error')
                 continue
 
             frame_width = int_or_none(storyboard_attrib[0])
@@ -158,7 +159,8 @@ class YouTubeIE(InfoExtractor):
                 width, height = frame_width * cols, frame_height * rows
                 n_images = int(math.ceil(total_frames / float(cols * rows)))
             else:
-                logger.warning('Unable to extract storyboard')
+                logger.warning('Unable to extract thumbframe')
+                self.errors.append('extraction error')
                 continue
 
             storyboards_url = base_url.replace('$L', str(i)) + '&'
@@ -186,8 +188,8 @@ class YouTubeIE(InfoExtractor):
 
         return storyboards
 
-    def get_storyboards(self, video_url):
-        video_id = self.extract_id(video_url)
+    def _get_thumbframes(self):
+        video_id = self._extract_id(self.video_url)
         video_webpage = self._download_page(self._VIDEO_WEBPAGE_URL.format(VIDEO_ID=video_id))
         sb_spec = self._extract_sb_spec_from_video_webpage(video_id, video_webpage)
         if not sb_spec:
@@ -195,49 +197,8 @@ class YouTubeIE(InfoExtractor):
             video_info = urllib.parse.parse_qs(video_info_page)
             sb_spec = self._extract_sb_spec_from_video_info(video_id, video_info)
             if not sb_spec:
-                logger.warning('Could not find storyboards for video {}'.format(video_id))
+                logger.warning('Could not find thumbframes for video {}'.format(video_id))
+                self.errors.append('not found')
                 return []
 
         return self._get_storyboards_from_spec(video_id, sb_spec)
-
-    def get_thumbnails(self, video_id, video_webpage):
-        player_config = self._get_ytplayer_config(video_id, video_webpage)
-        player_response = self.extract_player_response(
-            player_config['args'].get('player_response'),
-        video_id)
-        video_details = try_get(
-            player_response, lambda x: x['videoDetails'], dict) or {}
-
-        thumbnails = []
-        thumbnails_list = try_get(
-            video_details, lambda x: x['thumbnail']['thumbnails'], list) or []
-        for t in thumbnails_list:
-            if not isinstance(t, dict):
-                continue
-            thumbnail_url = url_or_none(t.get('url'))
-            if not thumbnail_url:
-                continue
-            thumbnails.append({
-                'url': thumbnail_url,
-                'width': int_or_none(t.get('width')),
-                'height': int_or_none(t.get('height')),
-            })
-
-        if not thumbnails:
-            video_thumbnail = None
-            # We try first to get a high quality image:
-            m_thumb = re.search(r'<span itemprop="thumbnail".*?href="(.*?)">',
-                                video_webpage, re.DOTALL)
-            if m_thumb is not None:
-                video_thumbnail = m_thumb.group(1)
-            # TODO: move
-            video_info_page = self._download_page(self._VIDEO_INFO_URL.format(VIDEO_ID=video_id))
-            video_info = urllib.parse.parse_qs(video_info_page)
-            # --
-            thumbnail_url = try_get(video_info, lambda x: x['thumbnail_url'][0], str)
-            if thumbnail_url:
-                video_thumbnail = urllib.parse.unquote_plus(thumbnail_url)
-            if video_thumbnail:
-                thumbnails.append({'url': video_thumbnail})
-
-        return thumbnails

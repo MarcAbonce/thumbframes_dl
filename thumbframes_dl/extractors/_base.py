@@ -1,17 +1,41 @@
+import abc
 import json
 import re
-import urllib
 
-from . import logger
-from .utils import compiled_regex_type, ExtractorError, RegexNotFoundError, NO_DEFAULT
+from requests import get, ConnectionError, HTTPError
+
+from thumbframes_dl import logger
+from thumbframes_dl.ytdl_utils.utils import (compiled_regex_type, std_headers,
+                                             ExtractorError, RegexNotFoundError, NO_DEFAULT)
 
 
-class InfoExtractor(object):
+class InfoExtractor(abc.ABC):
 
-    # TODO: Catch 400 or 500 errors, use requests?
-    def _download_page(self, url):
-        with urllib.request.urlopen(url) as response:
-            return response.read().decode()
+    def __init__(self, video_url, lazy=False):
+        self.video_url = video_url
+        self._thumbframes = None
+        self.errors = []
+        if not lazy:
+            self._thumbframes = self.thumbframes
+
+    @property
+    def thumbframes(self):
+        if self._thumbframes is None:
+            self._thumbframes = self._get_thumbframes()
+        return self._thumbframes
+
+    @abc.abstractmethod
+    def _get_thumbframes(self):
+        pass
+
+    def _download_page(self, url, extra_headers={}):
+        try:
+            response = get(url, headers={**std_headers, **extra_headers})
+            response.raise_for_status()
+        except (ConnectionError, HTTPError) as e:
+            logger.error('Could not download {url}\n{e}'.format(url=url, e=e))
+            return
+        return response.text
 
     def _parse_json(self, json_string, video_id, transform_source=None, fatal=True):
         if transform_source:
