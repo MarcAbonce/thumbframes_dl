@@ -1,3 +1,1 @@
-from .youtube import *
-
-__all__ = ['YouTubeFrames']
+from .youtube import YouTubeFrames  # noqa: F401

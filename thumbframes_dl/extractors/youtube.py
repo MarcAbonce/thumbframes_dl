@@ -2,12 +2,12 @@ import math
 import re
 import urllib
 
-from ._base import InfoExtractor
+from ._base import FramesExtractor
 from thumbframes_dl import logger
 from thumbframes_dl.ytdl_utils.utils import try_get, uppercase_escape, int_or_none, str_or_none, ExtractorError
 
 
-class YouTubeFrames(InfoExtractor):
+class YouTubeFrames(FramesExtractor):
     _YOUTUBE_URL = 'https://www.youtube.com'
     _VIDEO_WEBPAGE_URL = _YOUTUBE_URL + '/watch?v={VIDEO_ID}'
     _VIDEO_INFO_URL = _YOUTUBE_URL + '/get_video_info?video_id={VIDEO_ID}&el=detailpage'

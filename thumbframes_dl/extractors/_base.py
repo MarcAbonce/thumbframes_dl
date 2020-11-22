@@ -9,7 +9,7 @@ from thumbframes_dl.ytdl_utils.utils import (compiled_regex_type, std_headers,
                                              ExtractorError, RegexNotFoundError, NO_DEFAULT)
 
 
-class InfoExtractor(abc.ABC):
+class FramesExtractor(abc.ABC):
 
     def __init__(self, video_url, lazy=False):
         self.video_url = video_url
