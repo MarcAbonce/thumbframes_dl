@@ -12,11 +12,27 @@ from thumbframes_dl.ytdl_utils.utils import (compiled_regex_type, std_headers,
 class FramesExtractor(abc.ABC):
 
     def __init__(self, video_url, lazy=False):
-        self.video_url = video_url
-        self._thumbframes = None
+        self._input_url = video_url
+        self._validate()
+
         self.errors = []
+        self._thumbframes = None
         if not lazy:
             self._thumbframes = self.thumbframes
+
+    @abc.abstractmethod
+    def _validate(self):
+        pass
+
+    @property
+    @abc.abstractmethod
+    def video_id(self):
+        pass
+
+    @property
+    @abc.abstractmethod
+    def video_url(self):
+        pass
 
     @property
     def thumbframes(self):

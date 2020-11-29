@@ -73,6 +73,17 @@ class YouTubeFrames(FramesExtractor):
                      (?(1).+)?                                                # if we found the ID, everything can follow
                      $"""
 
+    def _validate(self):
+        self._video_id = self._extract_id(self._input_url)
+
+    @property
+    def video_id(self):
+        return self._video_id
+
+    @property
+    def video_url(self):
+        return self._VIDEO_WEBPAGE_URL.format(VIDEO_ID=self.video_id)
+
     def _extract_id(self, url):
         mobj = re.match(self._VALID_URL, url, re.VERBOSE)
         if mobj is None:
@@ -112,30 +123,31 @@ class YouTubeFrames(FramesExtractor):
                            lambda x: x['storyboards']['playerStoryboardSpecRenderer']['spec'],
                            str)
 
-    # Try to extract storyboard spec from video_info
-    def _extract_sb_spec_from_video_info(self, video_id, video_info):
-        pl_response = video_info.get('player_response', [None])
-        player_response = self._extract_player_response(pl_response, video_id)
-        if player_response:
-            sb_spec = self._extract_sb_spec(player_response)
-        else:
-            sb_spec = video_info.get('storyboard_spec')
-
-        return sb_spec
-
-    # Try to extract storyboard spec from video_webpage
-    def _extract_sb_spec_from_video_webpage(self, video_id, video_webpage):
-        player_config = self._get_ytplayer_config(video_id, video_webpage)
+    def _get_storyboard_spec(self):
+        # Try to extract storyboard spec from video_webpage
+        video_webpage = self._download_page(self.video_url)
+        player_config = self._get_ytplayer_config(self.video_id, video_webpage)
         player_response = self._extract_player_response(
             player_config['args'].get('player_response'),
-            video_id)
-
+            self.video_id)
         sb_spec = self._extract_sb_spec(player_response)
+
+        # Try to extract storyboard spec from video_info
+        if not sb_spec:
+            video_info_page = self._download_page(self._VIDEO_INFO_URL.format(VIDEO_ID=self.video_id))
+            video_info = urllib.parse.parse_qs(video_info_page)
+            pl_response = video_info.get('player_response', [None])
+            player_response = self._extract_player_response(pl_response, self.video_id)
+            if player_response:
+                sb_spec = self._extract_sb_spec(player_response)
+            else:
+                sb_spec = video_info.get('storyboard_spec')
+
         return sb_spec
 
     # Extract information of each storyboard
     def _get_storyboards_from_spec(self, video_id, sb_spec):
-        storyboards = []
+        storyboards = {}
 
         s_parts = sb_spec.split('|')
         base_url = s_parts[0]
@@ -164,6 +176,7 @@ class YouTubeFrames(FramesExtractor):
                 continue
 
             storyboards_url = base_url.replace('$L', str(i)) + '&'
+            storyboard_set = []
             for j in range(n_images):
                 url = storyboards_url.replace('$N', filename).replace('$M', str(j)) + 'sigh=' + sigh
                 if j == n_images - 1:
@@ -176,8 +189,8 @@ class YouTubeFrames(FramesExtractor):
                             cols = remaining_frames
                             width = cols * frame_width
 
-                storyboards.append({
-                    'id': 'L' + str(i) + '-M' + str(j),
+                storyboard_set.append({
+                    'id': 'L{i}/M{j}'.format(i=i, j=j),
                     'width': width,
                     'height': height,
                     'cols': cols,
@@ -185,20 +198,15 @@ class YouTubeFrames(FramesExtractor):
                     'frames': frames,
                     'url': url
                 })
+            storyboards['L{}'.format(i)] = storyboard_set
 
         return storyboards
 
     def _get_thumbframes(self):
-        video_id = self._extract_id(self.video_url)
-        video_webpage = self._download_page(self._VIDEO_WEBPAGE_URL.format(VIDEO_ID=video_id))
-        sb_spec = self._extract_sb_spec_from_video_webpage(video_id, video_webpage)
+        sb_spec = self._get_storyboard_spec()
         if not sb_spec:
-            video_info_page = self._download_page(self._VIDEO_INFO_URL.format(VIDEO_ID=video_id))
-            video_info = urllib.parse.parse_qs(video_info_page)
-            sb_spec = self._extract_sb_spec_from_video_info(video_id, video_info)
-            if not sb_spec:
-                logger.warning('Could not find thumbframes for video {}'.format(video_id))
-                self.errors.append('not found')
-                return []
+            logger.warning('Could not find thumbframes for video {}'.format(self.video_id))
+            self.errors.append('not found')
+            return []
 
-        return self._get_storyboards_from_spec(video_id, sb_spec)
+        return self._get_storyboards_from_spec(self.video_id, sb_spec)
