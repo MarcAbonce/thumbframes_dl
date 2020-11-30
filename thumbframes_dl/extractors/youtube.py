@@ -147,15 +147,14 @@ class YouTubeFrames(FramesExtractor):
 
     # Extract information of each storyboard
     def _get_storyboards_from_spec(self, video_id, sb_spec):
-        storyboards = {}
+        storyboards = dict()
 
         s_parts = sb_spec.split('|')
         base_url = s_parts[0]
         for i, params in enumerate(s_parts[1:]):
             storyboard_attrib = params.split('#')
             if len(storyboard_attrib) != 8:
-                logger.warning('Unable to extract thumbframe')
-                self.errors.append('extraction error')
+                logger.warning('Unable to extract thumbframe from spec {}'.format(params))
                 continue
 
             frame_width = int_or_none(storyboard_attrib[0])
@@ -171,8 +170,7 @@ class YouTubeFrames(FramesExtractor):
                 width, height = frame_width * cols, frame_height * rows
                 n_images = int(math.ceil(total_frames / float(cols * rows)))
             else:
-                logger.warning('Unable to extract thumbframe')
-                self.errors.append('extraction error')
+                logger.warning('Unable to extract thumbframe from spec {}'.format(params))
                 continue
 
             storyboards_url = base_url.replace('$L', str(i)) + '&'
@@ -206,7 +204,6 @@ class YouTubeFrames(FramesExtractor):
         sb_spec = self._get_storyboard_spec()
         if not sb_spec:
             logger.warning('Could not find thumbframes for video {}'.format(self.video_id))
-            self.errors.append('not found')
-            return []
+            return dict()
 
         return self._get_storyboards_from_spec(self.video_id, sb_spec)

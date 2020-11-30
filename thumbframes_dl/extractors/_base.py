@@ -15,7 +15,6 @@ class FramesExtractor(abc.ABC):
         self._input_url = video_url
         self._validate()
 
-        self.errors = []
         self._thumbframes = None
         if not lazy:
             self._thumbframes = self.thumbframes
