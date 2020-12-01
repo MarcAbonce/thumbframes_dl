@@ -118,25 +118,28 @@ class YouTubeFrames(FramesExtractor):
             return pl_response
 
     def _extract_sb_spec(self, player_response):
-        if 'storyboards' in player_response:
+        if player_response and 'storyboards' in player_response:
             return try_get(player_response,
                            lambda x: x['storyboards']['playerStoryboardSpecRenderer']['spec'],
                            str)
 
     def _get_storyboard_spec(self):
+        sb_spec = None
+
         # Try to extract storyboard spec from video_webpage
         video_webpage = self._download_page(self.video_url)
         player_config = self._get_ytplayer_config(self.video_id, video_webpage)
-        player_response = self._extract_player_response(
-            player_config['args'].get('player_response'),
-            self.video_id)
-        sb_spec = self._extract_sb_spec(player_response)
+        if player_config:
+            player_response = self._extract_player_response(
+                player_config['args'].get('player_response'),
+                self.video_id)
+            sb_spec = self._extract_sb_spec(player_response)
 
         # Try to extract storyboard spec from video_info
         if not sb_spec:
             video_info_page = self._download_page(self._VIDEO_INFO_URL.format(VIDEO_ID=self.video_id))
             video_info = urllib.parse.parse_qs(video_info_page)
-            pl_response = video_info.get('player_response', [None])
+            pl_response = video_info.get('player_response', [None])[0]
             player_response = self._extract_player_response(pl_response, self.video_id)
             if player_response:
                 sb_spec = self._extract_sb_spec(player_response)

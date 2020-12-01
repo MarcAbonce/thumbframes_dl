@@ -19,3 +19,8 @@ def get_video_html(url, **kwargs):
     full_path = os.path.join(TEST_DIR, 'test_assets', filename)
     with open(full_path) as f:
         return f.read()
+
+
+# Patch to download webpage with no relevant content
+def get_empty_html(*args, **kwargs):
+    return "<!DOCTYPE html><html><head></head><body></body></html>"

@@ -4,7 +4,7 @@ from urllib.parse import urlparse
 
 from thumbframes_dl import YouTubeFrames, ExtractorError
 
-from . import get_video_html
+from . import get_video_html, get_empty_html
 
 
 @mock.patch('thumbframes_dl.YouTubeFrames._download_page', side_effect=get_video_html)
@@ -30,8 +30,8 @@ class TestYouTubeFrames(TestCase):
             _ = YouTubeFrames(BAD_URL, lazy=True)
 
     def test_lazy_parameter(self, mock_download_page):
-        video = YouTubeFrames(self.VIDEO_ID, lazy=True)
-        self.assertIsNone(video._thumbframes)
+        _ = YouTubeFrames(self.VIDEO_ID, lazy=True)
+        self.assertFalse(mock_download_page.called)
 
     def test_page_only_downloads_once(self, mock_download_page):
         # construct object lazily so nothing is downloaded yet
@@ -39,24 +39,40 @@ class TestYouTubeFrames(TestCase):
         self.assertFalse(mock_download_page.called)
 
         # call thumbframes property, which should now call download
-        video.thumbframes
+        self.assertIsNotNone(video.thumbframes)
         self.assertTrue(mock_download_page.called)
         self.assertEqual(mock_download_page.call_count, 1)
 
         # should NOT download again if thumbframes property has already been calculated before
-        video.thumbframes
+        self.assertIsNotNone(video.thumbframes)
         self.assertEqual(mock_download_page.call_count, 1)
 
-    def test_get_thumbframes(self, mock_download_page):
+    def test_thumbframes_not_found(self, mock_download_page):
+        mock_download_page.side_effect = get_empty_html
+
+        video = YouTubeFrames('DUMMY_VIDEO')
+
+        # downloaded both webpage and video_info to try to find thumbframes
+        self.assertEqual(mock_download_page.call_count, 2)
+
+        # thumbframes is an empty structure but NOT a None
+        self.assertIsNotNone(video.thumbframes)
+        self.assertFalse(video.thumbframes)
+
+        # should NOT re-try download even if thumbframes is empty
+        self.assertEqual(mock_download_page.call_count, 2)
+
+    # Assert that thumbframes look reasonably well
+    def _assert_thumbframes(self, thumbframes, length):
         required_numbers = ['width', 'height', 'cols', 'rows', 'frames']
 
-        video = YouTubeFrames(self.VIDEO_ID)
-        self.assertIsNotNone(video.thumbframes)
+        self.assertIsNotNone(thumbframes)
+        self.assertTrue(thumbframes)
 
-        for i in range(3):
+        for i in range(length):
             tf_id = 'L{}'.format(i)
-            self.assertIn(tf_id, video.thumbframes)
-            for tf in video.thumbframes[tf_id]:
+            self.assertIn(tf_id, thumbframes)
+            for tf in thumbframes[tf_id]:
                 # check that all required numbers are set
                 for k in required_numbers:
                     self.assertIn(k, tf)
@@ -71,7 +87,23 @@ class TestYouTubeFrames(TestCase):
                 self.assertIn('.jpg', tf_url.path)
                 self.assertNotEqual(tf_url.query, '')
 
-    #def test_thumbframes_not_found(self, mock_download_page):
-    #    DUMMY_VIDEO_ID = 'XXXXXXXXXXX'
-    #    video = YouTubeFrames(DUMMY_VIDEO_ID)
-    #    self.assertIsNotNone(video.thumbframes)
+    def test_get_thumbframes(self, mock_download_page):
+        video = YouTubeFrames(self.VIDEO_ID)
+        self._assert_thumbframes(video.thumbframes, 3)
+
+    def test_get_thumbframes_from_video_info(self, mock_download_page):
+        # return webpage without thumbframes so we have to look them up in video_info instead
+        original_side_effect = mock_download_page.side_effect
+        def _get_empty_webpage(url, *args, **kwargs):  # noqa: E306
+            if 'watch' in url:
+                return get_empty_html(url)
+            else:
+                return original_side_effect(url, *args, **kwargs)
+        mock_download_page.side_effect = _get_empty_webpage
+
+        # check thumbframes
+        video = YouTubeFrames(self.VIDEO_ID)
+        self._assert_thumbframes(video.thumbframes, 3)
+
+        # downloaded both webpage and video_info to try to find thumbframes
+        self.assertEqual(mock_download_page.call_count, 2)
