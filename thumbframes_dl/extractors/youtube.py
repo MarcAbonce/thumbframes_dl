@@ -128,12 +128,24 @@ class YouTubeFrames(FramesExtractor):
 
         # Try to extract storyboard spec from video_webpage
         video_webpage = self._download_page(self.video_url)
+        player_response = None
+
         player_config = self._get_ytplayer_config(self.video_id, video_webpage)
         if player_config:
             player_response = self._extract_player_response(
                 player_config['args'].get('player_response'),
                 self.video_id)
-            sb_spec = self._extract_sb_spec(player_response)
+
+        if not player_response:
+            self._YT_INITIAL_PLAYER_RESPONSE_RE = r'ytInitialPlayerResponse\s*=\s*({.+?})\s*;'
+            player_response = self._extract_player_response(
+                self._search_regex(
+                    (r'%s\s*(?:var\s+meta|</script|\n)' % self._YT_INITIAL_PLAYER_RESPONSE_RE,
+                     self._YT_INITIAL_PLAYER_RESPONSE_RE), video_webpage,
+                    'initial player response', default='{}'),
+                self.video_id)
+
+        sb_spec = self._extract_sb_spec(player_response)
 
         # Try to extract storyboard spec from video_info
         if not sb_spec:

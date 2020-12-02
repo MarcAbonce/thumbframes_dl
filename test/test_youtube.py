@@ -1,3 +1,4 @@
+import re
 from numbers import Number
 from unittest import mock, TestCase
 from urllib.parse import urlparse
@@ -90,6 +91,21 @@ class TestYouTubeFrames(TestCase):
     def test_get_thumbframes(self, mock_download_page):
         video = YouTubeFrames(self.VIDEO_ID)
         self._assert_thumbframes(video.thumbframes, 3)
+
+    def test_get_thumbframes_from_webpages_initial_player_response(self, mock_download_page):
+        # return webpage without ytplayer.config object so it looks up the ytInitialPlayerResponse object instead
+        original_side_effect = mock_download_page.side_effect
+        def _get_webpage_without_ytplayer_config(url, *args, **kwargs):  # noqa: E306
+            webpage = original_side_effect(url, *args, **kwargs)
+            return re.sub(r'\<script\>.*ytplayer\.config.*\<\/script\>', '', webpage)
+        mock_download_page.side_effect = _get_webpage_without_ytplayer_config
+
+        # check thumbframes
+        video = YouTubeFrames(self.VIDEO_ID)
+        self._assert_thumbframes(video.thumbframes, 3)
+
+        # result is still found in webpage, therefore no need to download video_info
+        self.assertEqual(mock_download_page.call_count, 1)
 
     def test_get_thumbframes_from_video_info(self, mock_download_page):
         # return webpage without thumbframes so we have to look them up in video_info instead
