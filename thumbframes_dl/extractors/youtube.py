@@ -156,7 +156,7 @@ class YouTubeFrames(FramesExtractor):
             if player_response:
                 sb_spec = self._extract_sb_spec(player_response)
             else:
-                sb_spec = video_info.get('storyboard_spec')
+                sb_spec = video_info.get('storyboard_spec', [None])[0]
 
         return sb_spec
 
@@ -203,7 +203,7 @@ class YouTubeFrames(FramesExtractor):
                             width = cols * frame_width
 
                 storyboard_set.append({
-                    'id': 'L{i}/M{j}'.format(i=i, j=j),
+                    'id': 'L{0}/M{1}'.format(i, j),
                     'width': width,
                     'height': height,
                     'cols': cols,
