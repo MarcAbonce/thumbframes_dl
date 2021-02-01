@@ -1,9 +1,8 @@
 from sys import path
-from os.path import realpath, dirname, join
+from os.path import realpath, dirname
 path.append(realpath(dirname(realpath(__file__)) + '/../'))
 
 from difflib import SequenceMatcher
-from functools import reduce
 
 import cv2
 import numpy as np

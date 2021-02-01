@@ -2,12 +2,12 @@ import math
 import re
 import urllib
 
-from ._base import FramesExtractor
+from ._base import WebsiteFrames, ExtractorError
 from thumbframes_dl import logger
-from thumbframes_dl.ytdl_utils.utils import try_get, uppercase_escape, int_or_none, str_or_none, ExtractorError
+from thumbframes_dl.ytdl_utils.utils import try_get, uppercase_escape, int_or_none, str_or_none
 
 
-class YouTubeFrames(FramesExtractor):
+class YouTubeFrames(WebsiteFrames):
     _YOUTUBE_URL = 'https://www.youtube.com'
     _VIDEO_WEBPAGE_URL = _YOUTUBE_URL + '/watch?v={VIDEO_ID}'
     _VIDEO_INFO_URL = _YOUTUBE_URL + '/get_video_info?video_id={VIDEO_ID}&el=detailpage'
@@ -71,7 +71,7 @@ class YouTubeFrames(FramesExtractor):
                      )?                                                       # all until now is optional -> you can pass the naked ID
                      ([0-9A-Za-z_-]{11})                                      # here is it! the YouTube video ID
                      (?(1).+)?                                                # if we found the ID, everything can follow
-                     $"""
+                     $"""  # noqa: E501
 
     def _validate(self):
         self._video_id = self._extract_id(self._input_url)
@@ -87,7 +87,7 @@ class YouTubeFrames(FramesExtractor):
     def _extract_id(self, url):
         mobj = re.match(self._VALID_URL, url, re.VERBOSE)
         if mobj is None:
-            raise ExtractorError('Invalid URL: %s' % url, expected=True)
+            raise ExtractorError('Invalid URL: %s' % url)
         video_id = mobj.group(2)
         return video_id
 
@@ -215,7 +215,7 @@ class YouTubeFrames(FramesExtractor):
 
         return storyboards
 
-    def _get_thumbframes(self):
+    def _get_thumbframes_info(self):
         sb_spec = self._get_storyboard_spec()
         if not sb_spec:
             logger.warning('Could not find thumbframes for video {}'.format(self.video_id))

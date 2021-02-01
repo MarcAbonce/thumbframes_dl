@@ -24,3 +24,8 @@ def get_video_html(url, **kwargs):
 # Patch to download webpage with no relevant content
 def get_empty_html(*args, **kwargs):
     return "<!DOCTYPE html><html><head></head><body></body></html>"
+
+
+# Patch to download image with no relevant content
+def get_empty_image(*args, **kwargs):
+    return b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x00\x00\x00\x00:~\x9bU\x00\x00\x00\tpHYs\x00\x00.#\x00\x00.#\x01x\xa5?v\x00\x00\x00\nIDAT\x08\xd7c0\x05\x00\x007\x006\x0b$FC\x00\x00\x00\x00IEND\xaeB`\x82'  # noqa: E501

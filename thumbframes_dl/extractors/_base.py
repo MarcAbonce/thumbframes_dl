@@ -6,51 +6,35 @@ from requests import get, ConnectionError, HTTPError
 
 from thumbframes_dl import logger
 from thumbframes_dl.ytdl_utils.utils import (compiled_regex_type, std_headers,
-                                             ExtractorError, RegexNotFoundError, NO_DEFAULT)
+                                             RegexNotFoundError, NO_DEFAULT,
+                                             ExtractorError as YTDLExtractorError)
 
 
-class FramesExtractor(abc.ABC):
+class ExtractorError(YTDLExtractorError):
+    def __init__(self, *args, **kwargs):
+        kwargs['expected'] = True
+        super(ExtractorError, self).__init__(*args, **kwargs)
 
-    def __init__(self, video_url, lazy=False):
-        self._input_url = video_url
-        self._validate()
 
-        self._thumbframes = None
-        if not lazy:
-            self._thumbframes = self.thumbframes
+class InfoExtractor(object):
+    """
+    Superclass with helper methods to extract information from webpages.
+    """
 
-    @abc.abstractmethod
-    def _validate(self):
-        pass
-
-    @property
-    @abc.abstractmethod
-    def video_id(self):
-        pass
-
-    @property
-    @abc.abstractmethod
-    def video_url(self):
-        pass
-
-    @property
-    def thumbframes(self):
-        if self._thumbframes is None:
-            self._thumbframes = self._get_thumbframes()
-        return self._thumbframes
-
-    @abc.abstractmethod
-    def _get_thumbframes(self):
-        pass
-
-    def _download_page(self, url, extra_headers={}):
+    def _download(self, url, extra_headers={}):
         try:
             response = get(url, headers={**std_headers, **extra_headers})
             response.raise_for_status()
         except (ConnectionError, HTTPError) as e:
             logger.error('Could not download {url}\n{e}'.format(url=url, e=e))
             return
-        return response.text
+        return response
+
+    def _download_page(self, *args, **kwargs):
+        return self._download(*args, **kwargs).text
+
+    def _download_image(self, *args, **kwargs):
+        return self._download(*args, **kwargs).content
 
     def _parse_json(self, json_string, video_id, transform_source=None, fatal=True):
         if transform_source:
@@ -89,3 +73,110 @@ class FramesExtractor(abc.ABC):
             return default
         elif fatal:
             raise RegexNotFoundError('Unable to extract %s' % name)
+
+
+class Storyboard(InfoExtractor):
+    """
+    Each Storyboard represents a single image file downloaded and its associated metadata.
+    Each of these images contains n_frames frames arranged in a cols*rows grid.
+    Note that different Storyboard objects may have different sizes and frames even if
+    they're from the same video.
+    """
+
+    def __init__(self, url, image, width, height, cols, rows, n_frames):
+        self.url = url
+        self._image = image
+        self.width = width
+        self.height = height
+        self.cols = cols
+        self.rows = rows
+        self.n_frames = n_frames
+
+    @property
+    def image(self):
+        if self._image is None:
+            self._image = self._download_image(self.url)
+        return self._image
+
+
+class StoryboardSet(object):
+    """
+    Iterator for Storyboards.
+    """
+
+    def __init__(self, data):
+        self.i = 0
+        self._data = data
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if self.i >= len(self._data):
+            raise StopIteration
+        sb = self._data[self.i]
+        self.i += 1
+        return Storyboard(sb['url'],
+                          sb.get('image'),
+                          sb.get('width'),
+                          sb.get('height'),
+                          sb.get('cols'),
+                          sb.get('rows'),
+                          sb.get('n_frames'))
+
+
+class WebsiteFrames(abc.ABC, InfoExtractor):
+    """
+    Represents a video and contains its frames.
+    A subclass of this class needs to be implemented for each supported website.
+    """
+
+    def __init__(self, video_url):
+        self._input_url = video_url
+        self._validate()
+        self._thumbframes_info = self._get_thumbframes_info()
+
+    @abc.abstractmethod
+    def _validate(self):
+        """
+        Method that validates that self._input_url is a valid URL or id for this website.
+        If not, an ExtractorError should be thrown here.
+        """
+        pass
+
+    @property
+    @abc.abstractmethod
+    def video_id(self):
+        pass
+
+    @property
+    @abc.abstractmethod
+    def video_url(self):
+        pass
+
+    @abc.abstractmethod
+    def _get_thumbframes_info(self):
+        """
+        Get information of all the thumbframe images that can be downloaded from the video.
+        Each image should be represented by a dict with url and whatever metadata is available.
+        If the page offers more than 1 thumbframe set (e.g. with different resolutions) then
+        return dict where each set is listed separately. Otherwise, return list with each images's data.
+        """
+        pass
+
+    def get_thumbframes(self, key=None, lazy=True):
+        if self._thumbframes_info is None:
+            self._thumbframes_info = self.get_thumbframes_info()
+
+        # Info may be a single list or many lists in a dict.
+        # If it's the latter, a key needs to be passed to know which images set needs to be returned.
+        if key:
+            img_list = self.thumbframes_info.get(key)
+        else:
+            img_list = self.thumbframes_info
+
+        if img_list:
+            if not lazy:
+                for img_info in img_list:
+                    img_info['image'] = self._download_image(img_info['url'])
+            return StoryboardSet(img_list)
