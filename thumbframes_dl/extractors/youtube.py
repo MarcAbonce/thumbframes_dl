@@ -2,7 +2,7 @@ import math
 import re
 import urllib
 
-from ._base import WebsiteFrames, ExtractorError
+from ._base import WebsiteFrames, Storyboard, ExtractorError
 from thumbframes_dl import logger
 from thumbframes_dl.ytdl_utils.utils import try_get, uppercase_escape, int_or_none, str_or_none
 
@@ -202,20 +202,20 @@ class YouTubeFrames(WebsiteFrames):
                             cols = remaining_frames
                             width = cols * frame_width
 
-                storyboard_set.append({
-                    'id': 'L{0}/M{1}'.format(i, j),
-                    'width': width,
-                    'height': height,
-                    'cols': cols,
-                    'rows': rows,
-                    'frames': frames,
-                    'url': url
-                })
+                storyboard_set.append(
+                    Storyboard(
+                        url=url,
+                        width=width,
+                        height=height,
+                        cols=cols,
+                        rows=rows,
+                        n_frames=frames)
+                )
             storyboards['L{}'.format(i)] = storyboard_set
 
         return storyboards
 
-    def _get_thumbframes_info(self):
+    def _get_thumbframes(self):
         sb_spec = self._get_storyboard_spec()
         if not sb_spec:
             logger.warning('Could not find thumbframes for video {}'.format(self.video_id))

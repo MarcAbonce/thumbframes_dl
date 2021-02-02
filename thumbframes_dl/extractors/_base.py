@@ -77,52 +77,25 @@ class InfoExtractor(object):
 
 class Storyboard(InfoExtractor):
     """
-    Each Storyboard represents a single image file downloaded and its associated metadata.
-    Each of these images contains n_frames frames arranged in a cols*rows grid.
+    Each Storyboard represents a single image with n_frames frames arranged in a cols*rows grid.
     Note that different Storyboard objects may have different sizes and frames even if
     they're from the same video.
     """
 
-    def __init__(self, url, image, width, height, cols, rows, n_frames):
+    def __init__(self, url, width, height, cols, rows, n_frames):
         self.url = url
-        self._image = image
         self.width = width
         self.height = height
         self.cols = cols
         self.rows = rows
         self.n_frames = n_frames
+        self._image = None
 
     @property
     def image(self):
         if self._image is None:
             self._image = self._download_image(self.url)
         return self._image
-
-
-class StoryboardSet(object):
-    """
-    Iterator for Storyboards.
-    """
-
-    def __init__(self, data):
-        self.i = 0
-        self._data = data
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        if self.i >= len(self._data):
-            raise StopIteration
-        sb = self._data[self.i]
-        self.i += 1
-        return Storyboard(sb['url'],
-                          sb.get('image'),
-                          sb.get('width'),
-                          sb.get('height'),
-                          sb.get('cols'),
-                          sb.get('rows'),
-                          sb.get('n_frames'))
 
 
 class WebsiteFrames(abc.ABC, InfoExtractor):
@@ -134,7 +107,7 @@ class WebsiteFrames(abc.ABC, InfoExtractor):
     def __init__(self, video_url):
         self._input_url = video_url
         self._validate()
-        self._thumbframes_info = self._get_thumbframes_info()
+        self._thumbframes = self._get_thumbframes()
 
     @abc.abstractmethod
     def _validate(self):
@@ -155,7 +128,7 @@ class WebsiteFrames(abc.ABC, InfoExtractor):
         pass
 
     @abc.abstractmethod
-    def _get_thumbframes_info(self):
+    def _get_thumbframes(self):
         """
         Get information of all the thumbframe images that can be downloaded from the video.
         Each image should be represented by a dict with url and whatever metadata is available.
@@ -165,18 +138,21 @@ class WebsiteFrames(abc.ABC, InfoExtractor):
         pass
 
     def get_thumbframes(self, key=None, lazy=True):
-        if self._thumbframes_info is None:
-            self._thumbframes_info = self.get_thumbframes_info()
+        if self._thumbframes is None:
+            self._thumbframes = self._get_thumbframes()
 
         # Info may be a single list or many lists in a dict.
         # If it's the latter, a key needs to be passed to know which images set needs to be returned.
         if key:
-            img_list = self.thumbframes_info.get(key)
+            thumbframes_list = self._thumbframes.get(key, [])
+        elif isinstance(self._thumbframes, list):
+            thumbframes_list = self._thumbframes
         else:
-            img_list = self.thumbframes_info
+            logger.error("get_thumbframes requires key when there's more than one storyboard set")
+            return  # TODO: implement behaviour here
 
-        if img_list:
-            if not lazy:
-                for img_info in img_list:
-                    img_info['image'] = self._download_image(img_info['url'])
-            return StoryboardSet(img_list)
+        if not lazy:
+            # call image property to force downloads
+            list(map(lambda img: img.image, thumbframes_list))
+
+        return thumbframes_list
