@@ -9,7 +9,6 @@ import numpy as np
 import pytesseract
 from enchant import Dict
 from enchant.checker import SpellChecker
-from requests import get
 
 from thumbframes_dl import YouTubeFrames
 
@@ -20,16 +19,16 @@ spellchecker = SpellChecker(LANG[0])
 
 
 # get list of every line of text extracted from image
-def extract_text_from_frames(image, width, height, cols, rows):
+def extract_text_from_frames(thumbframes_image):
     # convert raw image's bytes to opencv image object
-    image = np.asarray(bytearray(image), dtype='uint8')
+    image = np.asarray(bytearray(thumbframes_image.image), dtype='uint8')
     image = cv2.imdecode(image, cv2.IMREAD_GRAYSCALE)
 
-    w_step = width // cols
-    h_step = height // rows
+    w_step = thumbframes_image.width // thumbframes_image.cols
+    h_step = thumbframes_image.height // thumbframes_image.rows
     scanned_texts = []
-    for i in range(rows):
-        for j in range(cols):
+    for i in range(thumbframes_image.rows):
+        for j in range(thumbframes_image.cols):
             # crop single frame from image
             frame = image[i*h_step:(i+1)*h_step-1, j*w_step:(j+1)*w_step-1]
 
@@ -118,15 +117,11 @@ def merge_extracted_texts(scanned_texts):
 
 if __name__ == "__main__":
     # Never Tell Me the Odds | Saving Throw | CC BY 3.0
-    frames = YouTubeFrames('https://www.youtube.com/watch?v=kEVOHhFg_s4')
+    video = YouTubeFrames('https://www.youtube.com/watch?v=kEVOHhFg_s4')
 
     scanned_texts = []
-    for storyboard in frames.thumbframes['L2']:
-        response = get(storyboard['url'])
-        response.raise_for_status()
-
-        width, height, cols, rows = storyboard['width'], storyboard['height'], storyboard['cols'], storyboard['rows']
-        scanned_texts += extract_text_from_frames(response.content, width, height, cols, rows)
+    for thumbframes_image in video.get_thumbframes('L2'):
+        scanned_texts += extract_text_from_frames(thumbframes_image)
 
     video_text = merge_extracted_texts(scanned_texts)
     print(video_text)
