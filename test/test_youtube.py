@@ -16,51 +16,8 @@ class TestYouTubeFrames(TestCase):
     VIDEO_ID = 'WhWc3b3KhnY'
     VIDEO_URL = 'https://www.youtube.com/watch?v=WhWc3b3KhnY'
 
-    def test_init_with_video_id(self, mock_download_page, mock_download_image):
-        video = YouTubeFrames(self.VIDEO_ID)
-        self.assertEqual(video.video_id, self.VIDEO_ID)
-        self.assertEqual(video.video_url, self.VIDEO_URL)
-
-    def test_init_with_video_url(self, mock_download_page, mock_download_image):
-        video = YouTubeFrames(self.VIDEO_URL)
-        self.assertEqual(video.video_id, self.VIDEO_ID)
-        self.assertEqual(video.video_url, self.VIDEO_URL)
-
-    def test_fail_init_with_bad_url(self, mock_download_page, mock_download_image):
-        BAD_URL = 'BAD_URL'
-        with self.assertRaises(ExtractorError):
-            _ = YouTubeFrames(BAD_URL)
-
-    """
-    def test_page_only_downloads_once(self, mock_download_page, mock_download_image):
-        # construct object, which downloads page with frames info
-        video = YouTubeFrames(self.VIDEO_ID)
-        self.assertIsNotNone(video._thumbframes)
-        self.assertTrue(mock_download_page.called)
-        self.assertEqual(mock_download_page.call_count, 1)
-
-        # should NOT download again if thumbframes property has already been calculated before
-        self.assertIsNotNone(video.thumbframes)
-        self.assertEqual(mock_download_page.call_count, 1)
-    """
-
-    def test_thumbframes_not_found(self, mock_download_page, mock_download_image):
-        mock_download_page.side_effect = get_empty_html
-
-        video = YouTubeFrames('DUMMY_VIDEO')
-
-        # downloaded both webpage and video_info to try to find thumbframes
-        self.assertEqual(mock_download_page.call_count, 2)
-
-        # thumbframes info is an empty structure but NOT a None
-        self.assertIsNotNone(video._thumbframes)
-        self.assertFalse(video._thumbframes)
-
-        # should NOT re-try download even if thumbframes info is empty
-        # self.assertEqual(mock_download_page.call_count, 2)
-
     # Assert that ThumbFramesImage objects look reasonably well
-    def _assert_thumbframes_images(self, tf_images):
+    def assertThumbFrames(self, tf_images):
         self.assertIsNotNone(tf_images)
         self.assertTrue(tf_images)
 
@@ -83,6 +40,95 @@ class TestYouTubeFrames(TestCase):
             # check that image is set
             self.assertIsNotNone(tf_image.image)
 
+    def test_init_with_video_id(self, mock_download_page, mock_download_image):
+        video = YouTubeFrames(self.VIDEO_ID)
+        self.assertEqual(video.video_id, self.VIDEO_ID)
+        self.assertEqual(video.video_url, self.VIDEO_URL)
+
+    def test_init_with_video_url(self, mock_download_page, mock_download_image):
+        video = YouTubeFrames(self.VIDEO_URL)
+        self.assertEqual(video.video_id, self.VIDEO_ID)
+        self.assertEqual(video.video_url, self.VIDEO_URL)
+
+    def test_fail_init_with_bad_url(self, mock_download_page, mock_download_image):
+        BAD_URL = 'BAD_URL'
+        with self.assertRaises(ExtractorError):
+            _ = YouTubeFrames(BAD_URL)
+
+    def test_thumbframes_not_found(self, mock_download_page, mock_download_image):
+        mock_download_page.side_effect = get_empty_html
+
+        video = YouTubeFrames('DUMMY_VIDEO')
+
+        # downloaded both webpage and video_info to try to find thumbframes
+        self.assertEqual(mock_download_page.call_count, 2)
+
+        # thumbframes info is an empty structure but NOT a None
+        self.assertIsNotNone(video._thumbframes)
+        self.assertFalse(video._thumbframes)
+
+        # should NOT re-try download even if thumbframes info is empty
+        self.assertEqual(mock_download_page.call_count, 2)
+
+    def test_page_only_downloads_once(self, mock_download_page, mock_download_image):
+        video = YouTubeFrames(self.VIDEO_ID)
+
+        # get thumbframes for the first time, which downloads page with frames info
+        self.assertIsNotNone(video.get_thumbframes('L0'))
+        self.assertTrue(mock_download_page.called)
+        self.assertEqual(mock_download_page.call_count, 1)
+
+        mock_download_page.reset_mock()
+
+        # should NOT download again if thumbframes data has already been obtained before
+        self.assertIsNotNone(video.get_thumbframes('L1'))
+        self.assertFalse(mock_download_page.called)
+        self.assertEqual(mock_download_page.call_count, 0)
+
+    def test_images_only_download_once(self, mock_download_page, mock_download_image):
+        video = YouTubeFrames(self.VIDEO_ID)
+
+        # get thumbframes for the first time, which downloads each image
+        thumbframes = video.get_thumbframes('L2')
+        for tf_image in video.get_thumbframes('L2'):
+            self.assertIsNotNone(tf_image.image)
+        self.assertTrue(mock_download_image.called)
+        self.assertEqual(mock_download_image.call_count, len(thumbframes))
+
+        mock_download_image.reset_mock()
+
+        # should NOT download images again if they have already been downloaded before
+        same_thumbframes_as_before = video.get_thumbframes('L2')
+        for tf_image in same_thumbframes_as_before:
+            self.assertIsNotNone(tf_image.image)
+        self.assertFalse(mock_download_image.called)
+        self.assertEqual(mock_download_image.call_count, 0)
+
+    def test_lazy_thumbframes(self, mock_download_page, mock_download_image):
+        video = YouTubeFrames(self.VIDEO_ID)
+
+        # get thumbframes for the first time, which downloads each image
+        for counter, tf_image in enumerate(video.get_thumbframes('L2'), start=1):
+            self.assertIsNotNone(tf_image.image)
+            self.assertTrue(mock_download_image.called)
+            self.assertEqual(mock_download_image.call_count, counter)
+
+    def test_non_lazy_thumbframes(self, mock_download_page, mock_download_image):
+        video = YouTubeFrames(self.VIDEO_ID)
+
+        # call method in non lazy mode so all images are downloaded right away
+        thumbframes = video.get_thumbframes('L2', lazy=False)
+        self.assertTrue(mock_download_image.called)
+        self.assertEqual(mock_download_image.call_count, len(thumbframes))
+
+        mock_download_image.reset_mock()
+
+        # no additional download here because images are already set
+        for tf_image in thumbframes:
+            self.assertIsNotNone(tf_image.image)
+            self.assertFalse(mock_download_image.called)
+        self.assertEqual(mock_download_image.call_count, 0)
+
     # Test that internal _thumbframes dict is set correctly.
     def test_get_thumbframes_info(self, mock_download_page, mock_download_image):
 
@@ -95,27 +141,27 @@ class TestYouTubeFrames(TestCase):
         for i in range(3):
             tf_id = 'L{}'.format(i)
             self.assertIn(tf_id, video._thumbframes)
-            self._assert_thumbframes_images(video._thumbframes[tf_id])
+            self.assertThumbFrames(video._thumbframes[tf_id])
 
     def test_get_thumbframes(self, mock_download_page, mock_download_image):
         video = YouTubeFrames(self.VIDEO_ID)
 
         # download 1 image from the L0 set
-        self._assert_thumbframes_images(video.get_thumbframes('L0'))
+        self.assertThumbFrames(video.get_thumbframes('L0'))
         self.assertEqual(mock_download_page.call_count, 1)
         self.assertEqual(mock_download_image.call_count, 1)
 
         # download 1 image from the L1 set
         mock_download_page.reset_mock()
         mock_download_image.reset_mock()
-        self._assert_thumbframes_images(video.get_thumbframes('L1'))
+        self.assertThumbFrames(video.get_thumbframes('L1'))
         self.assertEqual(mock_download_page.call_count, 0)
         self.assertEqual(mock_download_image.call_count, 1)
 
         # download 4 images from the L2 set
         mock_download_page.reset_mock()
         mock_download_image.reset_mock()
-        self._assert_thumbframes_images(video.get_thumbframes('L2'))
+        self.assertThumbFrames(video.get_thumbframes('L2'))
         self.assertEqual(mock_download_page.call_count, 0)
         self.assertEqual(mock_download_image.call_count, 4)
 
@@ -129,7 +175,7 @@ class TestYouTubeFrames(TestCase):
 
         # check thumbframes
         video = YouTubeFrames(self.VIDEO_ID)
-        self._assert_thumbframes_images(video.get_thumbframes('L0'))
+        self.assertThumbFrames(video.get_thumbframes('L0'))
 
         # result is still found in webpage, therefore no need to download video_info
         self.assertEqual(mock_download_page.call_count, 1)
@@ -146,7 +192,7 @@ class TestYouTubeFrames(TestCase):
 
         # check thumbframes
         video = YouTubeFrames(self.VIDEO_ID)
-        self._assert_thumbframes_images(video.get_thumbframes('L0'))
+        self.assertThumbFrames(video.get_thumbframes('L0'))
 
         # downloaded both webpage and video_info to try to find thumbframes
         self.assertEqual(mock_download_page.call_count, 2)
