@@ -1,7 +1,8 @@
 import abc
-from typing import Dict, List, Optional, Union
+from functools import reduce, total_ordering
+from typing import Dict, List, Optional, Sequence, Union
 
-from thumbframes_dl.utils import logger, InfoExtractor
+from thumbframes_dl.utils import InfoExtractor
 
 
 class ThumbFramesImage(InfoExtractor):
@@ -24,6 +25,45 @@ class ThumbFramesImage(InfoExtractor):
         if self._image is None:
             self._image = self._download_image(self.url)
         return self._image
+
+    def __repr__(self):
+        return "<%s: %sx%s image in a %sx%s grid>" % (
+            self.__class__.__name__, self.width, self.height, self.cols, self.rows
+        )
+
+
+@total_ordering
+class ThumbFramesFormat(object):
+    """
+    Basic metadata to show the qualities of each set of ThumbFramesImages.
+    Useful when there's more than one list of images per video.
+    Can be compared and sorted to get the frames with the highest resolution.
+    """
+
+    def __init__(self, key: Optional[str], thumbframes: List[ThumbFramesImage]):
+        self.key = key
+        self.frame_width = thumbframes[0].width // thumbframes[0].cols
+        self.frame_height = thumbframes[0].height // thumbframes[0].rows
+        self.total_frames = reduce(lambda acum, x: acum + x.n_frames, thumbframes, 0)
+        self.total_images = len(thumbframes)
+
+    def __hash__(self):
+        return hash(self.key)
+
+    @property
+    def frame_size(self):
+        return self.frame_width * self.frame_height
+
+    def __eq__(self, other):
+        return self.frame_size == other.frame_size
+
+    def __lt__(self, other):
+        return self.frame_size < other.frame_size
+
+    def __repr__(self):
+        return "<%s %s: %s %sx%s frames in %s images>" % (
+            self.__class__.__name__, self.key, self.total_frames, self.frame_width, self.frame_height, self.total_images
+        )
 
 
 class WebsiteFrames(abc.ABC, InfoExtractor):
@@ -55,33 +95,58 @@ class WebsiteFrames(abc.ABC, InfoExtractor):
     def video_url(self) -> str:
         pass
 
+    @property
+    def thumbframe_formats(self) -> Sequence[ThumbFramesFormat]:
+        """
+        Get available thumbframe formats sorted by highest resolution.
+        """
+        if isinstance(self._thumbframes, dict):
+            return tuple(sorted([ThumbFramesFormat(key, tf_images)
+                                 for key, tf_images
+                                 in self._thumbframes.items()], reverse=True))
+        else:
+            return tuple([ThumbFramesFormat(None, self._thumbframes)])
+
+    def get_thumbframe_format(self, key: str) -> Optional[ThumbFramesFormat]:
+        if isinstance(self._thumbframes, dict):
+            if key in self._thumbframes:
+                return ThumbFramesFormat(key, self._thumbframes[key])
+        return None
+
     @abc.abstractmethod
     def _get_thumbframes(self) -> Union[Dict[str, List[ThumbFramesImage]], List[ThumbFramesImage]]:
         """
-        Get information of all the thumbframe images that can be downloaded from the video.
-        Each image should be represented by a dict with url and whatever metadata is available.
-        If the page offers more than 1 thumbframe set (e.g. with different resolutions) then
-        return dict where each set is listed separately. Otherwise, return list with each images's data.
+        Get all the image's metadata from the video. The actual image files are downloaded later.
+        If the page offers more than 1 thumbframe set (for example with different resolutions),
+        then this method should return a dict so each set is listed separately. Otherwise, return a list.
         """
         pass
 
-    def get_thumbframes(self, key: str = None, lazy=True) -> List[ThumbFramesImage]:
-        if self._thumbframes is None:
-            self._thumbframes = self._get_thumbframes()
+    def get_thumbframes(self, key: Optional[str] = None, lazy=True) -> List[ThumbFramesImage]:
+        """
+        Get the video's ThumbFramesImages as a list.
+        If a webpage has more than one thumbframe format, the key parameter needs to be set so this method
+        knows which images to return.
+        By default, the images are downloaded lazily until the image property is called for each object.
+        If the lazy parameter is set to False, all the images will be downloaded right away.
+        """
 
         # _thumbframes may be a single list or many lists in a dict.
         # If it's the latter, a key needs to be passed to know which images set needs to be returned.
         if isinstance(self._thumbframes, list):
             thumbframes_list = self._thumbframes
         elif isinstance(self._thumbframes, dict):
-            if key:
-                thumbframes_list = self._thumbframes.get(key, [])
-            else:
-                logger.error("get_thumbframes requires key when there's more than one storyboard set")
-                return []  # TODO: implement behaviour here
+            if not key:
+                key = self.thumbframe_formats[0].key
+            thumbframes_list = self._thumbframes.get(key, [])  # type: ignore[arg-type]
 
         if not lazy:
             # call image property to force downloads
             list(map(lambda img: img.image, thumbframes_list))
 
         return thumbframes_list
+
+    def __repr__(self):
+        return "<%s %s>" % (
+            self.__class__.__name__, self.video_id
+        )

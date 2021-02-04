@@ -143,6 +143,31 @@ class TestYouTubeFrames(TestCase):
             self.assertIn(tf_id, video._thumbframes)
             self.assertThumbFrames(video._thumbframes[tf_id])
 
+    def test_thumbframes_formats(self, mock_download_page, mock_download_image):
+        video = YouTubeFrames(self.VIDEO_ID)
+        self.assertEqual(len(video.thumbframe_formats), 3)
+
+        self.assertEqual(video.thumbframe_formats[0].key, 'L2')
+        self.assertEqual(video.thumbframe_formats[0].frame_width, 214)
+        self.assertEqual(video.thumbframe_formats[0].frame_height, 90)
+        self.assertEqual(video.thumbframe_formats[0].frame_size, 214*90)
+        self.assertEqual(video.thumbframe_formats[0].total_frames, 94)
+        self.assertEqual(video.thumbframe_formats[0].total_images, 4)
+
+        self.assertEqual(video.thumbframe_formats[1].key, 'L1')
+        self.assertEqual(video.thumbframe_formats[1].frame_width, 107)
+        self.assertEqual(video.thumbframe_formats[1].frame_height, 45)
+        self.assertEqual(video.thumbframe_formats[1].frame_size, 107*45)
+        self.assertEqual(video.thumbframe_formats[1].total_frames, 94)
+        self.assertEqual(video.thumbframe_formats[1].total_images, 1)
+
+        self.assertEqual(video.thumbframe_formats[2].key, 'L0')
+        self.assertEqual(video.thumbframe_formats[2].frame_width, 48)
+        self.assertEqual(video.thumbframe_formats[2].frame_height, 27)
+        self.assertEqual(video.thumbframe_formats[2].frame_size, 48*27)
+        self.assertEqual(video.thumbframe_formats[2].total_frames, 100)
+        self.assertEqual(video.thumbframe_formats[2].total_images, 1)
+
     def test_get_thumbframes(self, mock_download_page, mock_download_image):
         video = YouTubeFrames(self.VIDEO_ID)
 
@@ -164,6 +189,17 @@ class TestYouTubeFrames(TestCase):
         self.assertThumbFrames(video.get_thumbframes('L2'))
         self.assertEqual(mock_download_page.call_count, 0)
         self.assertEqual(mock_download_image.call_count, 4)
+
+    def test_get_thumbframes_default_to_best_format(self, mock_download_page, mock_download_image):
+        video = YouTubeFrames(self.VIDEO_ID)
+
+        default_thumbframes = video.get_thumbframes()
+        self.assertThumbFrames(default_thumbframes)
+
+        selected_thumbframes = video.get_thumbframes('L2')
+        self.assertThumbFrames(selected_thumbframes)
+
+        self.assertEqual(default_thumbframes, selected_thumbframes)
 
     def test_get_thumbframes_from_webpages_initial_player_response(self, mock_download_page, mock_download_image):
         # return webpage without ytplayer.config object so it looks up the ytInitialPlayerResponse object instead
