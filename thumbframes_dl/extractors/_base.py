@@ -88,17 +88,25 @@ class WebsiteFrames(abc.ABC, InfoExtractor):
     @property
     @abc.abstractmethod
     def video_id(self) -> str:
+        """
+        Any unique identifier for the video provided by the website.
+        """
         pass
 
     @property
     @abc.abstractmethod
     def video_url(self) -> str:
+        """
+        The video's URL.
+        If possible, this URL should be "normalized" to its most canonical form
+        and not a URL shortner, mirror, embedding or a URL with unnecessary query parameters.
+        """
         pass
 
     @property
     def thumbframe_formats(self) -> Sequence[ThumbFramesFormat]:
         """
-        Get available thumbframe formats sorted by highest resolution.
+        Available thumbframe formats for the video. Sorted by highest resolution.
         """
         if isinstance(self._thumbframes, dict):
             return tuple(sorted([ThumbFramesFormat(key, tf_images)
@@ -108,6 +116,10 @@ class WebsiteFrames(abc.ABC, InfoExtractor):
             return tuple([ThumbFramesFormat(None, self._thumbframes)])
 
     def get_thumbframe_format(self, key: str) -> Optional[ThumbFramesFormat]:
+        """
+        Get thumbframe format identified by key.
+        Will return None if key is not found in video's thumbframe formats.
+        """
         if isinstance(self._thumbframes, dict):
             if key in self._thumbframes:
                 return ThumbFramesFormat(key, self._thumbframes[key])
