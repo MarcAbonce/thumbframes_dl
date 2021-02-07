@@ -3,7 +3,7 @@ import logging
 import re
 from typing import Dict, Optional
 
-from requests import get, ConnectionError, HTTPError, Response
+from requests import get, RequestException, Response
 
 from thumbframes_dl.ytdl_utils.utils import (compiled_regex_type, std_headers,
                                              RegexNotFoundError, NO_DEFAULT,
@@ -25,12 +25,14 @@ class InfoExtractor(object):
     Superclass with helper methods to extract information from webpages.
     """
 
-    def _download(self, url: str, extra_headers: Dict[str, str] = {}) -> Optional[Response]:
+    def _download(self, url: str, extra_headers: Dict[str, str] = {}, fatal=True) -> Optional[Response]:
         try:
             response = get(url, headers={**std_headers, **extra_headers})
             response.raise_for_status()
-        except (ConnectionError, HTTPError) as e:
+        except (RequestException) as e:
             logger.error('Could not download {url}\n{e}'.format(url=url, e=e))
+            if fatal:
+                raise e
             return None
         return response
 

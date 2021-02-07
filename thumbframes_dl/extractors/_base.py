@@ -21,10 +21,14 @@ class ThumbFramesImage(InfoExtractor):
         self._image = None  # type: Optional[bytes]
 
     @property
-    def image(self) -> Optional[bytes]:
+    def image(self) -> bytes:
+        """
+        The raw image as bytes.
+        Raises a RequestException if download fails.
+        """
         if self._image is None:
-            self._image = self._download_image(self.url)
-        return self._image
+            self._image = self._download_image(self.url, fatal=True)
+        return self._image  # type: ignore[return-value]
 
     def __repr__(self):
         return "<%s: %sx%s image in a %sx%s grid>" % (
