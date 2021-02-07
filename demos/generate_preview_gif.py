@@ -23,7 +23,7 @@ if __name__ == "__main__":
     frames_format = video.get_thumbframe_format(THUMBFRAME_FORMAT_ID)
     if frames_format is None:
         print("Video {} doesn't have thumbframes on the size I wanted to create a preview.".format(video.video_id))
-        return
+        exit()
 
     frames = []
     for frames_image in video.get_thumbframes(THUMBFRAME_FORMAT_ID):

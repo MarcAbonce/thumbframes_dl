@@ -1,3 +1,6 @@
+"""
+Takes a video with a "Space opera" style opening crawl and prints its text.
+"""
 from sys import path
 from os.path import realpath, dirname
 path.append(realpath(dirname(realpath(__file__)) + '/../'))
