@@ -3,6 +3,7 @@ from os.path import realpath, dirname
 path.append(realpath(dirname(realpath(__file__)) + '/../'))
 
 from difflib import SequenceMatcher
+from statistics import median
 
 import cv2
 import numpy as np
@@ -13,9 +14,40 @@ from enchant.checker import SpellChecker
 from thumbframes_dl import YouTubeFrames
 
 
+# Never Tell Me the Odds | Saving Throw | CC BY 3.0
+VIDEO_URL = 'https://www.youtube.com/watch?v=kEVOHhFg_s4'
+
 LANG = ('en', 'eng')
 dictionary = Dict(LANG[0])
 spellchecker = SpellChecker(LANG[0])
+
+
+# pytesseract.image_to_string returns a nice string, but no confidence level,
+# pytesseract.image_to_data dumps this whole mess, so you have to parse it
+def parse_pytesseract_output(data):
+
+    # this list is a mix of ints as numbers and ints as strings
+    data['conf'] = [int(num) for num in data['conf']]
+
+    # only return line if confidence is high enough
+    def _get_line_if_confident(start_index, end_index=None):
+        if len(data['conf'][start_index:end_index]) == 0:
+            return
+        if median(data['conf'][start_index:end_index]) >= 70:
+            return ' '.join(data['text'][start_index:end_index])
+
+    text = []
+    prev_line_num = 0
+    line_index = 0
+    # each text entry has a corresponding line_num and that's how you find newlines
+    for i in range(len(data['text'])):
+        if prev_line_num != data['line_num'][i]:
+            prev_line_num = data['line_num'][i]
+            text.append(_get_line_if_confident(line_index, i + 1))
+            line_index = i + 1
+    text.append(_get_line_if_confident(line_index, None))
+    text = list(filter(None, text))
+    return text
 
 
 # get list of every line of text extracted from image
@@ -23,6 +55,9 @@ def extract_text_from_frames(thumbframes_image):
     # convert raw image's bytes to opencv image object
     image = np.asarray(bytearray(thumbframes_image.image), dtype='uint8')
     image = cv2.imdecode(image, cv2.IMREAD_GRAYSCALE)
+
+    # set black text on white background
+    image = cv2.bitwise_not(image)
 
     w_step = thumbframes_image.width // thumbframes_image.cols
     h_step = thumbframes_image.height // thumbframes_image.rows
@@ -32,12 +67,15 @@ def extract_text_from_frames(thumbframes_image):
             # crop single frame from image
             frame = image[i*h_step:(i+1)*h_step-1, j*w_step:(j+1)*w_step-1]
 
-            # set black text on white background
-            frame = cv2.bitwise_not(frame)
-
             # crop bottom half of image (where crawling text is more visible) and try to straighten the text
-            src_box = np.array([[20, 60], [140, 60], [0, 90], [160, 90]], np.float32)
-            dst_box = np.array([[0, 0], [160, 0], [0, 90], [160, 90]], np.float32)
+            crop_side = w_step // 5
+            crop_top = h_step // 2
+            src_box = np.array([[crop_side, crop_top],
+                                [w_step - crop_side, crop_top],
+                                [0, h_step],
+                                [w_step, h_step]],
+                               np.float32)
+            dst_box = np.array([[0, 0], [w_step, 0], [0, h_step], [w_step, h_step]], np.float32)
             matrix = cv2.getPerspectiveTransform(src_box, dst_box)
             text_area = cv2.warpPerspective(frame, matrix, (w_step, h_step))
 
@@ -45,11 +83,14 @@ def extract_text_from_frames(thumbframes_image):
             text_area = cv2.resize(text_area, (w_step*5, h_step*5))
 
             # extract frame's text
-            scanned_lines = pytesseract.image_to_string(text_area, lang=LANG[1], config='--psm 6').split('\n')
+            scanned_output = pytesseract.image_to_data(text_area,
+                                                       lang=LANG[1],
+                                                       config='--psm 6',
+                                                       output_type=pytesseract.Output.DICT)
+            scanned_lines = parse_pytesseract_output(scanned_output)
             scanned_texts.append([line for line in scanned_lines if line != '' and not line.isspace()])
 
-            # cv2.imshow('', text_area)
-            # cv2.waitKey(0)
+            # cv2.imshow('', text_area); cv2.waitKey(0)
 
     return scanned_texts
 
@@ -69,27 +110,18 @@ def merge_extracted_texts(scanned_texts):
     for text in scanned_texts:
         # read each line of text
         for line in text:
-
-            # ignore if line has too many misspellings
             spelling_score = get_spelling_score(line)
-            lowercase_spelling_score = get_spelling_score(line.lower())
-            if spelling_score < 0.7 or lowercase_spelling_score < 0.5:
-                continue
-
-            # ignore if line is just a short sequence of really short strings
-            if len(line.split()) < 5 and all([len(word) < 5 for word in line.split()]):
-                continue
 
             # check if line is a likely duplicate
             best_line = None
             best_similarity = 0
             for i, saved_line in enumerate(complete_text):
                 similarity = SequenceMatcher(None, line, saved_line).ratio()
-                if similarity >= 0.75 and similarity > best_similarity:
+                if similarity >= 0.7 and similarity > best_similarity:
                     best_line = i
                     best_similarity = similarity
 
-            # append new line if unique or merge with similar line
+            # append new line if unique, otherwise merge with similar line
             if best_line is None:
                 complete_text.append(line)
                 spelling_scores.append(spelling_score)
@@ -116,11 +148,10 @@ def merge_extracted_texts(scanned_texts):
 
 
 if __name__ == "__main__":
-    # Never Tell Me the Odds | Saving Throw | CC BY 3.0
-    video = YouTubeFrames('https://www.youtube.com/watch?v=kEVOHhFg_s4')
+    video = YouTubeFrames(VIDEO_URL)
 
     scanned_texts = []
-    for thumbframes_image in video.get_thumbframes('L2'):
+    for thumbframes_image in video.get_thumbframes():
         scanned_texts += extract_text_from_frames(thumbframes_image)
 
     video_text = merge_extracted_texts(scanned_texts)
