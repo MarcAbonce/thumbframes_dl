@@ -40,15 +40,15 @@ class ThumbFramesFormat(object):
     Can be compared and sorted to get the frames with the highest resolution.
     """
 
-    def __init__(self, key: Optional[str], thumbframes: List[ThumbFramesImage]):
-        self.key = key
+    def __init__(self, format_id: Optional[str], thumbframes: List[ThumbFramesImage]):
+        self.format_id = format_id
         self.frame_width = thumbframes[0].width // thumbframes[0].cols
         self.frame_height = thumbframes[0].height // thumbframes[0].rows
         self.total_frames = reduce(lambda acum, x: acum + x.n_frames, thumbframes, 0)
         self.total_images = len(thumbframes)
 
     def __hash__(self):
-        return hash(self.key)
+        return hash(self.format_id)
 
     @property
     def frame_size(self):
@@ -62,7 +62,8 @@ class ThumbFramesFormat(object):
 
     def __repr__(self):
         return "<%s %s: %s %sx%s frames in %s images>" % (
-            self.__class__.__name__, self.key, self.total_frames, self.frame_width, self.frame_height, self.total_images
+            self.__class__.__name__,
+            self.format_id, self.total_frames, self.frame_width, self.frame_height, self.total_images
         )
 
 
@@ -109,20 +110,25 @@ class WebsiteFrames(abc.ABC, InfoExtractor):
         Available thumbframe formats for the video. Sorted by highest resolution.
         """
         if isinstance(self._thumbframes, dict):
-            return tuple(sorted([ThumbFramesFormat(key, tf_images)
-                                 for key, tf_images
+            return tuple(sorted([ThumbFramesFormat(format_id, tf_images)
+                                 for format_id, tf_images
                                  in self._thumbframes.items()], reverse=True))
         else:
             return tuple([ThumbFramesFormat(None, self._thumbframes)])
 
-    def get_thumbframe_format(self, key: str) -> Optional[ThumbFramesFormat]:
+    def get_thumbframe_format(self, format_id: Optional[str]) -> Optional[ThumbFramesFormat]:
         """
-        Get thumbframe format identified by key.
-        Will return None if key is not found in video's thumbframe formats.
+        Get thumbframe format identified by format_id.
+        Will return None if format_id is not found in video's thumbframe formats.
+        If no format_id is passed, this will return the highest resolution thumbframe format.
         """
-        if isinstance(self._thumbframes, dict):
-            if key in self._thumbframes:
-                return ThumbFramesFormat(key, self._thumbframes[key])
+        if isinstance(self._thumbframes, list):
+            return ThumbFramesFormat(None, self._thumbframes)
+        elif isinstance(self._thumbframes, dict):
+            if format_id is None:
+                return self.thumbframe_formats[0]
+            elif format_id in self._thumbframes:
+                return ThumbFramesFormat(format_id, self._thumbframes[format_id])
         return None
 
     @abc.abstractmethod
@@ -134,23 +140,23 @@ class WebsiteFrames(abc.ABC, InfoExtractor):
         """
         pass
 
-    def get_thumbframes(self, key: Optional[str] = None, lazy=True) -> List[ThumbFramesImage]:
+    def get_thumbframes(self, format_id: Optional[str] = None, lazy=True) -> List[ThumbFramesImage]:
         """
         Get the video's ThumbFramesImages as a list.
-        If a webpage has more than one thumbframe format, the key parameter needs to be set so this method
+        If a webpage has more than one thumbframe format, the format_id parameter needs to be set so this method
         knows which images to return.
         By default, the images are downloaded lazily until the image property is called for each object.
         If the lazy parameter is set to False, all the images will be downloaded right away.
         """
 
         # _thumbframes may be a single list or many lists in a dict.
-        # If it's the latter, a key needs to be passed to know which images set needs to be returned.
+        # If it's the latter, a format_id needs to be passed to know which images set needs to be returned.
         if isinstance(self._thumbframes, list):
             thumbframes_list = self._thumbframes
         elif isinstance(self._thumbframes, dict):
-            if not key:
-                key = self.thumbframe_formats[0].key
-            thumbframes_list = self._thumbframes.get(key, [])  # type: ignore[arg-type]
+            if not format_id:
+                format_id = self.thumbframe_formats[0].format_id
+            thumbframes_list = self._thumbframes.get(format_id, [])  # type: ignore[arg-type]
 
         if not lazy:
             # call image property to force downloads
