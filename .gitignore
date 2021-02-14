@@ -2,5 +2,10 @@
 *.pyc
 
 env
+.tox
+*egg*
+.eggs/*
+build/*
+dist/*
 
 demos/*.gif
