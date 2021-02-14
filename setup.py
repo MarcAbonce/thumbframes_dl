@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 
 def get_file_contents(filename):
@@ -24,4 +24,5 @@ setup(
         "Programming Language :: Python :: 3.5"
     ],
     install_requires=get_file_contents('requirements.txt'),
+    packages=find_packages(),
 )
