@@ -4,10 +4,12 @@ Download thumbnail frames from a video's progress bar.
 When you watch a video on the web, you've probably noticed these thumbnail sized preview frames that are shown when you hover the cursor over the video player's progress bar.  
 ![Screenshot of a YouTube video with the mouse's cursor hovering over the progress bar at the bottom of the video player.
   The video is playing at minute 2:15, but the cursor is hovering over the minute 5:13.
-  Over the cursor there's a thumbnail image showing the frame that will be played at minute 5:13.](docs/img/screenshot.webp)
+  Over the cursor there's a thumbnail image showing the frame that will be played at minute 5:13.](docs/img/screenshot.webp)  
+© Blender Foundation | [cloud.blender.org/spring](https://cloud.blender.org/films/spring)
 
 When you download the actual images, you'll see that they're actually concatenated in grids containing n*m frames like this:  
-![Grid of tiny 10x10 images showing the video's frames at a regular interval.](docs/img/storyboard.webp)
+![Grid of tiny 10x10 images showing the video's frames at a regular interval.](docs/img/storyboard.webp)  
+© Blender Foundation | [cloud.blender.org/spring](https://cloud.blender.org/films/spring)
 
 I refer to this individual frames as thumbframes because I couldn't find a better, less confusing name.  
 
