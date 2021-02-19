@@ -216,7 +216,7 @@ class YouTubeFrames(WebsiteFrames):
 
         return storyboards
 
-    def _get_thumbframes(self) -> Dict[str, List[ThumbFramesImage]]:
+    def download_thumbframe_info(self) -> Dict[str, List[ThumbFramesImage]]:
         sb_spec = self._get_storyboard_spec()
         if not sb_spec:
             logger.warning('Could not find thumbframes for video {}'.format(self.video_id))

@@ -80,7 +80,7 @@ class WebsiteFrames(abc.ABC, InfoExtractor):
     def __init__(self, video_url: str):
         self._input_url = video_url
         self._validate()
-        self._thumbframes = self._get_thumbframes()
+        self._thumbframes = self.download_thumbframe_info()
 
     @abc.abstractmethod
     def _validate(self) -> None:
@@ -136,9 +136,9 @@ class WebsiteFrames(abc.ABC, InfoExtractor):
         return None
 
     @abc.abstractmethod
-    def _get_thumbframes(self) -> Union[Dict[str, List[ThumbFramesImage]], List[ThumbFramesImage]]:
+    def download_thumbframe_info(self) -> Union[Dict[str, List[ThumbFramesImage]], List[ThumbFramesImage]]:
         """
-        Get all the image's metadata from the video. The actual image files are downloaded later.
+        Get all the thumbframe's metadata from the video. The actual image files are downloaded later.
         If the page offers more than 1 thumbframe set (for example with different resolutions),
         then this method should return a dict so each set is listed separately. Otherwise, return a list.
         """
