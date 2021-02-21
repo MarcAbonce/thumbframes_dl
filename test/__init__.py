@@ -15,22 +15,17 @@ def url_to_filename(url):
 
 
 # Patch to mock an HTTP response
-def mock_http_response(*args, **kwargs):
+def mock_urlopen(*args, **kwargs):
     url = args[0]
-
     headers = {}
     ext = urlparse(url).path.split('.')[-1].lower()
     if ext in ['gif', 'jpg', 'jpeg', 'png', 'webp']:
-        headers['Content-Type'] = 'image/{}'.format(ext)
-        content = get_empty_image(*args, **kwargs)
+        return mock_empty_image_response(*args, **kwargs)
     else:
         headers['Content-Type'] = 'text/html; charset=utf-8'
-        if kwargs.get('get_empty_html', False):
-            content = get_empty_html(*args, **kwargs).encode()
-        else:
-            content = get_video_html(*args, **kwargs).encode()
+        content = get_video_html(*args, **kwargs).encode()
 
-    return mock.MagicMock(headers=headers, read=lambda: content)
+    return mock.MagicMock(status=200, headers=headers, read=lambda: content)
 
 
 # Patch to open local webpage instead of downloading it
@@ -41,11 +36,19 @@ def get_video_html(url, *args, **kwargs):
         return f.read()
 
 
-# Patch to download webpage with no relevant content
-def get_empty_html(*args, **kwargs):
-    return "<!DOCTYPE html><html><head></head><body></body></html>"
+def mock_empty_html_response(*args, **kwargs):
+    headers = {'Content-Type': 'text/html; charset=utf-8'}
+    content = "<!DOCTYPE html><html><head></head><body></body></html>"
+    return mock.MagicMock(status=200, headers=headers, read=lambda: content.encode())
 
 
-# Patch to download image with no relevant content
-def get_empty_image(*args, **kwargs):
-    return b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x00\x00\x00\x00:~\x9bU\x00\x00\x00\tpHYs\x00\x00.#\x00\x00.#\x01x\xa5?v\x00\x00\x00\nIDAT\x08\xd7c0\x05\x00\x007\x006\x0b$FC\x00\x00\x00\x00IEND\xaeB`\x82'  # noqa: E501
+def mock_empty_json_response(*args, **kwargs):
+    headers = {'Content-Type': 'application/json; charset=utf-8'}
+    content = "{}"
+    return mock.MagicMock(status=200, headers=headers, read=lambda: content.encode())
+
+
+def mock_empty_image_response(*args, **kwargs):
+    headers = {'Content-Type': 'image/png'}
+    content = b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x00\x00\x00\x00:~\x9bU\x00\x00\x00\tpHYs\x00\x00.#\x00\x00.#\x01x\xa5?v\x00\x00\x00\nIDAT\x08\xd7c0\x05\x00\x007\x006\x0b$FC\x00\x00\x00\x00IEND\xaeB`\x82'  # noqa: E501
+    return mock.MagicMock(status=200, headers=headers, read=lambda: content)

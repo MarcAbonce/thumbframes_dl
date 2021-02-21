@@ -5,10 +5,10 @@ from urllib.parse import urlparse
 from youtube_dl.utils import ExtractorError
 from thumbframes_dl import YouTubeFrames
 
-from . import mock_http_response
+from . import mock_urlopen, mock_empty_json_response
 
 
-@mock.patch('youtube_dl.extractor.common.InfoExtractor._request_webpage', side_effect=mock_http_response)
+@mock.patch('youtube_dl.YoutubeDL.urlopen', side_effect=mock_urlopen)
 class TestYouTubeFrames(TestCase):
 
     # Spring | Blender Animation Studio | CC BY 4.0
@@ -55,7 +55,7 @@ class TestYouTubeFrames(TestCase):
             _ = YouTubeFrames(BAD_URL)
 
     def test_thumbframes_not_found(self, mock_http_request):
-        mock_http_request.side_effect = lambda *args, **kwargs: False
+        mock_http_request.side_effect = mock_empty_json_response
 
         video = YouTubeFrames('DUMMY_VIDEO')
 
@@ -64,7 +64,7 @@ class TestYouTubeFrames(TestCase):
 
         # thumbframes info is an empty structure but NOT a None
         self.assertIsNotNone(video._thumbframes)
-        self.assertFalse(video._thumbframes)
+        self.assertFalse(video.get_thumbframes())
 
         # should NOT re-try download even if thumbframes info is empty
         self.assertEqual(mock_http_request.call_count, 2)

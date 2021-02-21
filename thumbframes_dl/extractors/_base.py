@@ -167,7 +167,7 @@ class WebsiteFrames(abc.ABC, InfoExtractor):
         if isinstance(self._thumbframes, list):
             thumbframes_list = self._thumbframes
         elif isinstance(self._thumbframes, dict):
-            if not format_id:
+            if not format_id and len(self.thumbframe_formats) > 0:
                 format_id = self.thumbframe_formats[0].format_id
             thumbframes_list = self._thumbframes.get(format_id, [])  # type: ignore[arg-type]
 

@@ -39,7 +39,7 @@ class YouTubeFrames(WebsiteFrames, YoutubeIE):
                 video_id, 'initial player response')
         if not player_response:
             player_response = self._call_api(
-                'player', {'videoId': video_id}, video_id, fatal=False)
+                'player', {'videoId': video_id}, video_id)
 
         if player_response and 'storyboards' in player_response:
             return try_get(player_response,
