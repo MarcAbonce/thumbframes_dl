@@ -2,3 +2,4 @@ numpy
 opencv-python
 pyenchant
 pytesseract
+youtube_dl

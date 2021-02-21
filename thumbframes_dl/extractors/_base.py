@@ -2,7 +2,10 @@ import abc
 from functools import reduce, total_ordering
 from typing import Dict, List, Optional, Sequence, Union
 
-from thumbframes_dl.utils import InfoExtractor
+from youtube_dl.YoutubeDL import YoutubeDL
+from youtube_dl.extractor.common import InfoExtractor
+
+from thumbframes_dl.logging import logger
 
 
 class ThumbFramesImage(InfoExtractor):
@@ -12,6 +15,7 @@ class ThumbFramesImage(InfoExtractor):
     """
 
     def __init__(self, url: str, width: int, height: int, cols: int, rows: int, n_frames: int):
+        self.set_downloader(YoutubeDL({'logger': logger}))
         self.url = url
         self.width = width
         self.height = height
@@ -20,6 +24,10 @@ class ThumbFramesImage(InfoExtractor):
         self.n_frames = n_frames
         self._image = None  # type: Optional[bytes]
 
+    def _download_image(self) -> bytes:
+        resp = self._request_webpage(self.url, self.url, fatal=True)
+        return resp.read()
+
     @property
     def image(self) -> bytes:
         """
@@ -27,7 +35,7 @@ class ThumbFramesImage(InfoExtractor):
         Raises a RequestException if download fails.
         """
         if self._image is None:
-            self._image = self._download_image(self.url, fatal=True)
+            self._image = self._download_image()
         return self._image  # type: ignore[return-value]
 
     def __repr__(self):
@@ -78,6 +86,7 @@ class WebsiteFrames(abc.ABC, InfoExtractor):
     """
 
     def __init__(self, video_url: str):
+        self.set_downloader(YoutubeDL({'logger': logger}))
         self._input_url = video_url
         self._validate()
         self._thumbframes = self.download_thumbframe_info()
@@ -86,7 +95,7 @@ class WebsiteFrames(abc.ABC, InfoExtractor):
     def _validate(self) -> None:
         """
         Method that validates that self._input_url is a valid URL or id for this website.
-        If not, an ExtractorError should be thrown here.
+        If not, an exception should be thrown here.
         """
         pass
 

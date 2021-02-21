@@ -11,7 +11,7 @@ from thumbframes_dl import YouTubeFrames
 
 # Spring | Blender Animation Studio | CC BY 4.0
 VIDEO_URL = 'https://www.youtube.com/watch?v=WhWc3b3KhnY'
-THUMBFRAME_FORMAT_ID = 'L1'
+THUMBFRAME_FORMAT_ID = 'L2'
 
 
 if __name__ == "__main__":

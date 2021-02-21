@@ -1,5 +1,6 @@
 import os
-from urllib.parse import quote
+from unittest import mock
+from urllib.parse import urlparse, quote
 
 
 TEST_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -7,14 +8,33 @@ TEST_DIR = os.path.dirname(os.path.realpath(__file__))
 
 # Generate filename for html files in test_assets
 def url_to_filename(url):
-    filename = quote(url.replace('/', '_'))
+    filename = quote(url[:url.find('&')].replace('/', '_'))
     if not filename.endswith('.html'):
         filename += '.html'
     return filename
 
 
+# Patch to mock an HTTP response
+def mock_http_response(*args, **kwargs):
+    url = args[0]
+
+    headers = {}
+    ext = urlparse(url).path.split('.')[-1].lower()
+    if ext in ['gif', 'jpg', 'jpeg', 'png', 'webp']:
+        headers['Content-Type'] = 'image/{}'.format(ext)
+        content = get_empty_image(*args, **kwargs)
+    else:
+        headers['Content-Type'] = 'text/html; charset=utf-8'
+        if kwargs.get('get_empty_html', False):
+            content = get_empty_html(*args, **kwargs).encode()
+        else:
+            content = get_video_html(*args, **kwargs).encode()
+
+    return mock.MagicMock(headers=headers, read=lambda: content)
+
+
 # Patch to open local webpage instead of downloading it
-def get_video_html(url, **kwargs):
+def get_video_html(url, *args, **kwargs):
     filename = url_to_filename(url)
     full_path = os.path.join(TEST_DIR, 'test_assets', filename)
     with open(full_path) as f:
