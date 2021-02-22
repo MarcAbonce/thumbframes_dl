@@ -26,8 +26,9 @@ video = YouTubeFrames('https://www.youtube.com/watch?v=WhWc3b3KhnY')
 
 # iterate all images with thumbframes (there may be more than one)
 for i, frames_image in enumerate(video.get_thumbframes()):
-    with open("{}_{}.webp".format(video.video_id, i), 'wb') as f:
-        f.write(frames_image.image)  # save each image
+    file_content = frames_image.get_image()
+    with open(f"{video.video_id}_{i}.{frames_image.mime_type}", "wb") as f:
+        f.write(file_content)  # save each image
 ```
 
 For a couple more examples showing the potential usefulness of thumbframes see the [demos](demos).  
