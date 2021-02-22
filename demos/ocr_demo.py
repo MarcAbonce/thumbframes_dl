@@ -56,7 +56,7 @@ def parse_pytesseract_output(data):
 # get list of every line of text extracted from image
 def extract_text_from_frames(thumbframes_image):
     # convert raw image's bytes to opencv image object
-    image = np.asarray(bytearray(thumbframes_image.image), dtype='uint8')
+    image = np.asarray(bytearray(thumbframes_image.get_image()), dtype='uint8')
     image = cv2.imdecode(image, cv2.IMREAD_GRAYSCALE)
 
     # set black text on white background

@@ -28,7 +28,7 @@ if __name__ == "__main__":
     frames = []
     for frames_image in video.get_thumbframes(THUMBFRAME_FORMAT_ID):
         # open image that contains the thumbframes
-        image = Image.open(BytesIO(frames_image.image))
+        image = Image.open(BytesIO(frames_image.get_image()))
 
         # iterate each thumbframe in the image, crop the thumbframe and append it to the frames list
         for i in range(frames_image.cols):
