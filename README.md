@@ -32,4 +32,4 @@ for i, frames_image in enumerate(video.get_thumbframes()):
 ```
 
 For a couple more examples showing the potential usefulness of thumbframes see the [demos](demos).  
-For a more detailed description of the API see the [API documentation](docs/README.md).
+For a more detailed description of the API see the [API documentation](docs/main.md).  
