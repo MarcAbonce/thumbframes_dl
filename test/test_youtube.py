@@ -37,7 +37,10 @@ class TestYouTubeFrames(TestCase):
             self.assertNotEqual(tf_url.query, '')
 
             # check that image is set
-            self.assertIsNotNone(tf_image.image)
+            self.assertIsNotNone(tf_image.get_image())
+
+            # check that mime type was set by image, not URL
+            self.assertEqual(tf_image.mime_type, 'webp')
 
     def test_init_with_video_id(self, mock_http_request):
         video = YouTubeFrames(self.VIDEO_ID)
@@ -57,14 +60,19 @@ class TestYouTubeFrames(TestCase):
     def test_thumbframes_not_found(self, mock_http_request):
         mock_http_request.side_effect = mock_empty_json_response
 
-        video = YouTubeFrames('DUMMY_VIDEO')
+        # this represents a "valid" YouTube video that returns no thumbframes
+        video = YouTubeFrames('ZERO_THUMBS')
 
         # downloaded both webpage and video_info to try to find thumbframes
         self.assertEqual(mock_http_request.call_count, 2)
 
         # thumbframes info is an empty structure but NOT a None
         self.assertIsNotNone(video._thumbframes)
-        self.assertFalse(video.get_thumbframes())
+        self.assertEqual(len(video.get_thumbframes()), 0)
+
+        # thumbframe formats methods shouldn't break
+        self.assertIsNone(video.thumbframe_formats)
+        self.assertIsNone(video.get_thumbframe_format())
 
         # should NOT re-try download even if thumbframes info is empty
         self.assertEqual(mock_http_request.call_count, 2)
@@ -91,7 +99,7 @@ class TestYouTubeFrames(TestCase):
         # get thumbframes for the first time, which downloads each image
         thumbframes = video.get_thumbframes('L2')
         for tf_image in video.get_thumbframes('L2'):
-            self.assertIsNotNone(tf_image.image)
+            self.assertIsNotNone(tf_image.get_image())
         self.assertTrue(mock_http_request.called)
         self.assertEqual(mock_http_request.call_count, len(thumbframes))
 
@@ -100,7 +108,7 @@ class TestYouTubeFrames(TestCase):
         # should NOT download images again if they have already been downloaded before
         same_thumbframes_as_before = video.get_thumbframes('L2')
         for tf_image in same_thumbframes_as_before:
-            self.assertIsNotNone(tf_image.image)
+            self.assertIsNotNone(tf_image.get_image())
         self.assertFalse(mock_http_request.called)
         self.assertEqual(mock_http_request.call_count, 0)
 
@@ -110,7 +118,7 @@ class TestYouTubeFrames(TestCase):
 
         # get thumbframes for the first time, which downloads each image
         for counter, tf_image in enumerate(video.get_thumbframes('L2'), start=1):
-            self.assertIsNotNone(tf_image.image)
+            self.assertIsNotNone(tf_image.get_image())
             self.assertTrue(mock_http_request.called)
             self.assertEqual(mock_http_request.call_count, counter)
 
@@ -127,7 +135,7 @@ class TestYouTubeFrames(TestCase):
 
         # no additional download here because images are already set
         for tf_image in thumbframes:
-            self.assertIsNotNone(tf_image.image)
+            self.assertIsNotNone(tf_image.get_image())
             self.assertFalse(mock_http_request.called)
         self.assertEqual(mock_http_request.call_count, 0)
 

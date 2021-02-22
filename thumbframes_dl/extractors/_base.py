@@ -22,21 +22,20 @@ class ThumbFramesImage(InfoExtractor):
         self.cols = cols
         self.rows = rows
         self.n_frames = n_frames
+        self.mime_type = None
         self._image = None  # type: Optional[bytes]
 
-    def _download_image(self) -> bytes:
-        resp = self._request_webpage(self.url, self.url, fatal=True)
-        return resp.read()
-
-    @property
-    def image(self) -> bytes:
+    def get_image(self) -> bytes:
         """
         The raw image as bytes.
-        Raises a RequestException if download fails.
+        Raises an ExtractorError if download fails.
         """
         if self._image is None:
-            self._image = self._download_image()
-        return self._image  # type: ignore[return-value]
+            resp = self._request_webpage(self.url, self.url, fatal=True)
+            raw_image = resp.read()
+            self.mime_type = resp.headers.get('Content-Type', '').split(';')[0].split('/')[1]
+            self._image = raw_image
+        return self._image
 
     def __repr__(self):
         return "<%s: %sx%s image in a %sx%s grid>" % (
@@ -118,10 +117,13 @@ class WebsiteFrames(abc.ABC, InfoExtractor):
         pass
 
     @property
-    def thumbframe_formats(self) -> Sequence[ThumbFramesFormat]:
+    def thumbframe_formats(self) -> Optional[Sequence[ThumbFramesFormat]]:
         """
         Available thumbframe formats for the video. Sorted by highest resolution.
         """
+        if len(self._thumbframes) == 0:
+            return None
+
         if isinstance(self._thumbframes, dict):
             return tuple(sorted([ThumbFramesFormat(format_id, tf_images)
                                  for format_id, tf_images
@@ -129,12 +131,15 @@ class WebsiteFrames(abc.ABC, InfoExtractor):
         else:
             return tuple([ThumbFramesFormat(None, self._thumbframes)])
 
-    def get_thumbframe_format(self, format_id: Optional[str]) -> Optional[ThumbFramesFormat]:
+    def get_thumbframe_format(self, format_id: Optional[str] = None) -> Optional[ThumbFramesFormat]:
         """
         Get thumbframe format identified by format_id.
         Will return None if format_id is not found in video's thumbframe formats.
         If no format_id is passed, this will return the highest resolution thumbframe format.
         """
+        if self.thumbframe_formats is None:
+            return None
+
         if isinstance(self._thumbframes, list):
             return ThumbFramesFormat(None, self._thumbframes)
         elif isinstance(self._thumbframes, dict):
@@ -167,13 +172,13 @@ class WebsiteFrames(abc.ABC, InfoExtractor):
         if isinstance(self._thumbframes, list):
             thumbframes_list = self._thumbframes
         elif isinstance(self._thumbframes, dict):
-            if not format_id and len(self.thumbframe_formats) > 0:
+            if not format_id and self.thumbframe_formats:
                 format_id = self.thumbframe_formats[0].format_id
             thumbframes_list = self._thumbframes.get(format_id, [])  # type: ignore[arg-type]
 
         if not lazy:
             # call image property to force downloads
-            list(map(lambda img: img.image, thumbframes_list))
+            list(map(lambda img: img.get_image(), thumbframes_list))
 
         return thumbframes_list
 
