@@ -5,7 +5,7 @@ from youtube_dl.utils import try_get, int_or_none
 from youtube_dl.extractor.youtube import YoutubeIE
 
 from ._base import WebsiteFrames, ThumbFramesImage
-from thumbframes_dl.logging import logger
+from thumbframes_dl.utils import logger
 
 
 class YouTubeFrames(WebsiteFrames, YoutubeIE):

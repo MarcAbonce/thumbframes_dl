@@ -5,7 +5,7 @@ from typing import Dict, List, Optional, Sequence, Union
 from youtube_dl.YoutubeDL import YoutubeDL
 from youtube_dl.extractor.common import InfoExtractor
 
-from thumbframes_dl.logging import logger
+from thumbframes_dl.utils import logger
 
 
 class ThumbFramesImage(InfoExtractor):
@@ -95,7 +95,7 @@ class WebsiteFrames(abc.ABC, InfoExtractor):
     def _validate(self) -> None:
         """
         Method that validates that self._input_url is a valid URL or id for this website.
-        If not, an exception should be thrown here.
+        If not, an ExtractorError should be thrown here.
         """
         pass
 
