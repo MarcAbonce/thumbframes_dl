@@ -1,7 +1,7 @@
 # thumbframes_dl API
 
 ## WebsiteFrames's Subclasses
-Each website handles thumbframes in a unique way, so for each supported website we need to implement a [WebsiteFrames](docs/extractors.md#extractors._base.WebsiteFrames) subclass.  
+Each website handles thumbframes in a unique way, so for each supported website we need to implement a [WebsiteFrames](extractors.md#extractors._base.WebsiteFrames) subclass.  
 
 ### YouTubeFrames
 YouTube can return thumbframes images in different formats, such as:
