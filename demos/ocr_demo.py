@@ -17,7 +17,7 @@ from enchant.checker import SpellChecker
 from thumbframes_dl import YouTubeFrames
 
 
-# Never Tell Me the Odds | Saving Throw | CC BY 3.0
+# Never Tell Me the Odds - Star Noirs One-off opening crawl | Saving Throw | CC BY 3.0
 VIDEO_URL = 'https://www.youtube.com/watch?v=kEVOHhFg_s4'
 
 LANG = ('en', 'eng')

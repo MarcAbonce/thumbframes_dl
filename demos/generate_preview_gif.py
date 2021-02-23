@@ -31,13 +31,13 @@ if __name__ == "__main__":
         image = Image.open(BytesIO(frames_image.get_image()))
 
         # iterate each thumbframe in the image, crop the thumbframe and append it to the frames list
-        for i in range(frames_image.cols):
-            for j in range(frames_image.rows):
+        for row in range(frames_image.rows):
+            for col in range(frames_image.cols):
                 frames.append(image.crop((
-                    i*frames_format.frame_width,
-                    j*frames_format.frame_height,
-                    (i + 1)*frames_format.frame_width,
-                    (j + 1)*frames_format.frame_height
+                    col*frames_format.frame_width,
+                    row*frames_format.frame_height,
+                    (col + 1)*frames_format.frame_width,
+                    (row + 1)*frames_format.frame_height
                 )))
 
     # create a new gif image from the frames list
