@@ -1,13 +1,16 @@
 from setuptools import setup, find_packages
 
 
-def get_file_contents(filename):
+def get_file_contents(filename, break_lines=False):
     with open(filename) as f:
-        return [line.strip() for line in f.readlines()]
+        if break_lines:
+            return [line.strip() for line in f.readlines()]
+        else:
+            return f.read()
 
 
 def get_version():
-    return get_file_contents('thumbframes_dl/version.py')[0].split('=')[1].strip('" ')
+    return get_file_contents('thumbframes_dl/version.py').split('=')[1].strip('" \n')
 
 
 setup(
@@ -15,14 +18,25 @@ setup(
     version=get_version(),
     url="https://github.com/MarcAbonce/thumbframes_dl",
     description="Download thumbnail frames from a video's progress bar",
+    long_description=get_file_contents('README.md'),
+    long_description_content_type="text/markdown",
     keywords="videos, youtube, download, frames, thumbnails, storyboards",
+    author="Marc Abonce Seguin",
     license="Unlicense",
     classifiers=[
         "Topic :: Multimedia :: Video",
-        "License :: OSI Approved :: The Unlicense (Unlicense)",
+        "Topic :: Software Development :: Libraries",
+        "License :: Public Domain",
         "Development Status :: 4 - Beta",
-        "Programming Language :: Python :: 3.5"
+        "Intended Audience :: Developers",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
     ],
-    install_requires=get_file_contents('requirements.txt'),
+    install_requires=get_file_contents('requirements.txt', break_lines=True),
     packages=find_packages(),
 )
