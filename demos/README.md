@@ -1,5 +1,14 @@
 ## Demos
 
+There's a lot of computer vision problems that require processing a massive amount of internet videos. In these cases, the bottleneck is usually not the algorithm itself but instead it's retrieving the videos in the first place.  
+
+Downloading a video's thumbframes may help you solve these problems.  
+
+Of course, in most cases there will be a loss in accuracy because the frames are so small and do not contain every single key frame. However, a video's thumbframes should provide enough information to be representative of a video's content in the general sense.  
+
+Hopefully, this library will help you solve problems that you previously thought of as unfeasible.  
+
+
 ### Generate preview  
 ```sh
 python generate_preview_gif.py
