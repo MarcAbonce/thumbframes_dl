@@ -36,5 +36,5 @@ For a more detailed description of the API see the [API documentation](https://g
 
 ## Copyright  
 All the code in thumbframes_dl is released into the public domain by its authors. See [LICENSE](https://github.com/MarcAbonce/thumbframes_dl/blob/master/LICENSE).  
-All the text in thumbframe_dl's documentation is likewise released into the public domain under the same license.  
+All the text in thumbframes_dl's documentation is likewise released into the public domain under the same license.  
 The images used in the documentation are attributed to their copyright owners and shared under their respective Creative Commons licenses.  
