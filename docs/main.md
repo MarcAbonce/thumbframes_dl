@@ -9,7 +9,7 @@ YouTube can return thumbframes images in different formats, such as:
 * **L1**: A set of bigger images with a 10x10 grid each.  
 * **L2**: A set of bigger images with a 5x5 grid each.  
 
-The image sizes amay vary per video. Also, a video doesn't necessarily contain images in all the formats.  
+The image sizes may vary per video. Also, a video doesn't necessarily contain images in all the formats.  
 
 ## ExtractorError Objects  
 ExtractorError is [youtube_dl](https://github.com/ytdl-org/youtube-dl)'s main Exception class.  
