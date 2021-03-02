@@ -14,6 +14,11 @@ When you download the actual images, you'll see that they're actually concatenat
 I refer to this individual frames as thumbframes because I couldn't find a better, less confusing name.  
 
 ## How to use
+Install the library:  
+```
+pip install thumbframes-dl
+```  
+
 A simple example:  
 ```python
 # Download a video's thumbframes images and save them in the filesystem
