@@ -15,7 +15,7 @@ class ThumbFramesImage(InfoExtractor):
     """
 
     def __init__(self, url: str, width: int, height: int, cols: int, rows: int, n_frames: int):
-        self.set_downloader(YoutubeDL({'logger': logger}))
+        self.set_downloader(YoutubeDL({'source_address': '0.0.0.0', 'logger': logger}))
         self.url = url
         self.width = width
         self.height = height
@@ -85,7 +85,7 @@ class WebsiteFrames(abc.ABC, InfoExtractor):
     """
 
     def __init__(self, video_url: str):
-        self.set_downloader(YoutubeDL({'logger': logger}))
+        self.set_downloader(YoutubeDL({'source_address': '0.0.0.0', 'logger': logger}))
         self._input_url = video_url
         self._validate()
         self._thumbframes = self.download_thumbframe_info()
