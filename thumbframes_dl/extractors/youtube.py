@@ -4,8 +4,9 @@ from typing import Dict, List
 from youtube_dl.utils import try_get, int_or_none
 from youtube_dl.extractor.youtube import YoutubeIE
 
-from ._base import WebsiteFrames, ThumbFramesImage
 from thumbframes_dl.utils import logger
+
+from .base import WebsiteFrames, ThumbFramesImage
 
 
 class YouTubeFrames(WebsiteFrames, YoutubeIE):
