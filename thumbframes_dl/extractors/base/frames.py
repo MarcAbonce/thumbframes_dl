@@ -25,8 +25,9 @@ class WebsiteFrames(abc.ABC, InfoExtractor):
     @abc.abstractmethod
     def _validate(self) -> None:
         """
-        Method that validates that self._input_url is a valid URL or id for this website.
-        If not, an ExtractorError should be thrown here.
+        Validates that self._input_url is a valid URL or id for this website.
+
+        :raises ExtractorError
         """
         pass
 
@@ -44,7 +45,7 @@ class WebsiteFrames(abc.ABC, InfoExtractor):
         """
         The video's URL.
         If possible, this URL should be "normalized" to its most canonical form
-        and not a URL shortner, mirror, embedding or a URL with unnecessary query parameters.
+        and not a URL shortener, mirror, embedding or a URL with unnecessary query parameters.
         """
         pass
 

@@ -26,7 +26,9 @@ class ThumbFramesImage(InfoExtractor):
     def get_image(self) -> bytes:
         """
         The raw image as bytes.
-        Raises an ExtractorError if download fails.
+        Tries to download the image if it hasn't been already downloaded.
+
+        :raises ExtractorError
         """
         if self._image is None:
             resp = self._request_webpage(self.url, self.url, fatal=True)
