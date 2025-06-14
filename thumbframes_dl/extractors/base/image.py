@@ -20,7 +20,7 @@ class ThumbFramesImage(InfoExtractor):
         self.cols = cols
         self.rows = rows
         self.n_frames = n_frames
-        self.mime_type = None
+        self.mime_type: Optional[str] = None
         self._image: Optional[bytes] = None
 
     def get_image(self) -> bytes:
@@ -35,7 +35,7 @@ class ThumbFramesImage(InfoExtractor):
             self._image = raw_image
         return self._image
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "<%s: %sx%s image in a %sx%s grid>" % (
             self.__class__.__name__, self.width, self.height, self.cols, self.rows
         )
