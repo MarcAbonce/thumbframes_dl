@@ -16,9 +16,9 @@ class YouTubeFrames(WebsiteFrames, YoutubeIE):
 
     YouTube can return thumbframes images in different formats, such as:
 
-    L0: A single small image with a 10x10 grid.
-    L1: A set of bigger images with a 10x10 grid each.
-    L2: A set of bigger images with a 5x5 grid each.
+    * L0: A single small image with a 10x10 grid.
+    * L1: A set of bigger images with a 10x10 grid each.
+    * L2: A set of bigger images with a 5x5 grid each.
 
     The image sizes may vary per video.
     Also, a video doesn't necessarily contain images in all the formats.
