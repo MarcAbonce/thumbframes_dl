@@ -19,20 +19,24 @@ class ThumbFramesFormat(object):
         self.total_frames = reduce(lambda acum, x: acum + x.n_frames, thumbframes, 0)
         self.total_images = len(thumbframes)
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.format_id)
 
     @property
-    def frame_size(self):
+    def frame_size(self) -> int:
         return self.frame_width * self.frame_height
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, ThumbFramesFormat):
+            return NotImplemented
         return self.frame_size == other.frame_size
 
-    def __lt__(self, other):
+    def __lt__(self, other) -> bool:
+        if not isinstance(other, ThumbFramesFormat):
+            return NotImplemented
         return self.frame_size < other.frame_size
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "<%s %s: %s %sx%s frames in %s images>" % (
             self.__class__.__name__,
             self.format_id, self.total_frames, self.frame_width, self.frame_height, self.total_images

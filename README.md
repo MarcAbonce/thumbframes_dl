@@ -11,7 +11,7 @@ When you download the actual images, you'll see that they're actually concatenat
 ![Grid of tiny 10x10 images showing the video's frames at a regular interval.](https://raw.githubusercontent.com/MarcAbonce/thumbframes_dl/master/docs/img/storyboard.webp)  
 © Blender Foundation | [cloud.blender.org/spring](https://cloud.blender.org/films/spring)
 
-I refer to this individual frames as thumbframes because I couldn't find a better, less confusing name.  
+I refer to this individual frames as thumbframes because I couldn't find a better, less confusing name. YouTube calls them storyboards, but that's technically a different thing.  
 
 ## How to use
 Install the library:  

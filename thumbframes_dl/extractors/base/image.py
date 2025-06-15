@@ -20,13 +20,15 @@ class ThumbFramesImage(InfoExtractor):
         self.cols = cols
         self.rows = rows
         self.n_frames = n_frames
-        self.mime_type = None
+        self.mime_type: Optional[str] = None
         self._image: Optional[bytes] = None
 
     def get_image(self) -> bytes:
         """
         The raw image as bytes.
-        Raises an ExtractorError if download fails.
+        Tries to download the image if it hasn't been already downloaded.
+
+        :raises ExtractorError
         """
         if self._image is None:
             resp = self._request_webpage(self.url, self.url, fatal=True)
@@ -35,7 +37,7 @@ class ThumbFramesImage(InfoExtractor):
             self._image = raw_image
         return self._image
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "<%s: %sx%s image in a %sx%s grid>" % (
             self.__class__.__name__, self.width, self.height, self.cols, self.rows
         )

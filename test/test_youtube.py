@@ -1,5 +1,6 @@
 import re
 import os
+import logging
 import unittest
 
 import httpretty  # type: ignore
@@ -22,6 +23,8 @@ class TestYouTubeFrames(unittest.TestCase):
 
     # Mock YoutubeDL's internal HTTP requests
     def setUp(self):
+        logging.disable(logging.CRITICAL)  # comment out if needed for debugging a failed test
+
         httpretty.reset()
         httpretty.enable(allow_net_connect=False)
 
@@ -57,6 +60,7 @@ class TestYouTubeFrames(unittest.TestCase):
 
     def tearDown(self):
         httpretty.disable()
+        logging.disable(logging.NOTSET)
 
     # Assert that ThumbFramesImage objects look reasonably well
     def assertThumbFrames(self, tf_images):

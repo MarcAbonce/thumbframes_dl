@@ -1,5 +1,5 @@
 import abc
-from typing import Dict, List, Optional, Sequence, Union
+from typing import Optional, Sequence, Union
 
 from youtube_dl.YoutubeDL import YoutubeDL
 from youtube_dl.extractor.common import InfoExtractor
@@ -25,8 +25,9 @@ class WebsiteFrames(abc.ABC, InfoExtractor):
     @abc.abstractmethod
     def _validate(self) -> None:
         """
-        Method that validates that self._input_url is a valid URL or id for this website.
-        If not, an ExtractorError should be thrown here.
+        Validates that self._input_url is a valid URL or id for this website.
+
+        :raises ExtractorError
         """
         pass
 
@@ -44,7 +45,7 @@ class WebsiteFrames(abc.ABC, InfoExtractor):
         """
         The video's URL.
         If possible, this URL should be "normalized" to its most canonical form
-        and not a URL shortner, mirror, embedding or a URL with unnecessary query parameters.
+        and not a URL shortener, mirror, embedding or a URL with unnecessary query parameters.
         """
         pass
 
@@ -82,7 +83,7 @@ class WebsiteFrames(abc.ABC, InfoExtractor):
         return None
 
     @abc.abstractmethod
-    def download_thumbframe_info(self) -> Union[Dict[str, List[ThumbFramesImage]], List[ThumbFramesImage]]:
+    def download_thumbframe_info(self) -> Union[dict[str, list[ThumbFramesImage]], list[ThumbFramesImage]]:
         """
         Get all the thumbframe's metadata from the video. The actual image files are downloaded later.
         If the page offers more than 1 thumbframe set (for example with different resolutions),
@@ -90,7 +91,7 @@ class WebsiteFrames(abc.ABC, InfoExtractor):
         """
         pass
 
-    def get_thumbframes(self, format_id: Optional[str] = None, lazy=True) -> List[ThumbFramesImage]:
+    def get_thumbframes(self, format_id: Optional[str] = None, lazy=True) -> list[ThumbFramesImage]:
         """
         Get the video's ThumbFramesImages as a list.
         If a webpage has more than one thumbframe format, the format_id parameter needs to be set so this method
@@ -114,7 +115,7 @@ class WebsiteFrames(abc.ABC, InfoExtractor):
 
         return thumbframes_list
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "<%s %s>" % (
             self.__class__.__name__, self.video_id
         )

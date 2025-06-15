@@ -1,5 +1,6 @@
 import math
-from typing import Dict, List
+
+from typing import Optional
 
 from youtube_dl.utils import try_get, int_or_none
 from youtube_dl.extractor.youtube import YoutubeIE
@@ -10,23 +11,41 @@ from .base import WebsiteFrames, ThumbFramesImage
 
 
 class YouTubeFrames(WebsiteFrames, YoutubeIE):
+    """
+    Extracts thumbframes (a.k.a. storyboards) from a YouTube video.
+
+    YouTube can return thumbframes images in different formats, such as:
+
+    * L0: A single small image with a 10x10 grid.
+    * L1: A set of bigger images with a 10x10 grid each.
+    * L2: A set of bigger images with a 5x5 grid each.
+
+    The image sizes may vary per video.
+    Also, a video doesn't necessarily contain images in all the formats.
+    """
+
     _YOUTUBE_URL = 'https://www.youtube.com'
     _VIDEO_WEBPAGE_URL = _YOUTUBE_URL + '/watch?v={VIDEO_ID}'
     _VIDEO_INFO_URL = _YOUTUBE_URL + '/get_video_info?video_id={VIDEO_ID}&el=detailpage'
 
-    def _validate(self):
+    def _validate(self) -> None:
+        """:raises ExtractorError"""
         self._video_id = YoutubeIE.extract_id(self._input_url)
 
     @property
-    def video_id(self):
+    def video_id(self) -> str:
         return self._video_id
 
     @property
-    def video_url(self):
+    def video_url(self) -> str:
         return self._VIDEO_WEBPAGE_URL.format(VIDEO_ID=self.video_id)
 
-    # Try to extract storyboard spec from player_response object
-    def _get_storyboard_spec(self):
+    def _get_storyboard_spec(self) -> Optional[str]:
+        """
+        Tries to extract storyboard spec from player_response object.
+        Storyboard spec is downloaded from video's page or an API endpoint.
+        """
+
         video_id = self.video_id
         webpage_url = self._VIDEO_WEBPAGE_URL.format(VIDEO_ID=video_id)
 
@@ -47,9 +66,15 @@ class YouTubeFrames(WebsiteFrames, YoutubeIE):
                            lambda x: x['storyboards']['playerStoryboardSpecRenderer']['spec'],
                            str)
 
-    # Extract information of each storyboard
-    def _get_storyboards_from_spec(self, video_id, sb_spec):
-        storyboards = dict()
+        return None  # storyboard spec not found anywhere in page
+
+    def _get_storyboards_from_spec(self, sb_spec: str) -> dict[str, list[ThumbFramesImage]]:
+        """
+        Tries to extract information for each storyboard
+        by parsing the extracted storyboard spec.
+        """
+
+        storyboards: dict[str, list[ThumbFramesImage]] = {}
 
         s_parts = sb_spec.split('|')
         base_url = s_parts[0]
@@ -75,8 +100,8 @@ class YouTubeFrames(WebsiteFrames, YoutubeIE):
                 logger.warning('Unable to extract thumbframe from spec {}'.format(params))
                 continue
 
+            storyboard_set: list[ThumbFramesImage] = []
             storyboards_url = base_url.replace('$L', str(i)) + '&'
-            storyboard_set = []
             for j in range(n_images):
                 url = storyboards_url.replace('$N', filename).replace('$M', str(j)) + 'sigh=' + sigh
                 if j == n_images - 1:
@@ -102,10 +127,10 @@ class YouTubeFrames(WebsiteFrames, YoutubeIE):
 
         return storyboards
 
-    def download_thumbframe_info(self) -> Dict[str, List[ThumbFramesImage]]:
+    def download_thumbframe_info(self) -> dict[str, list[ThumbFramesImage]]:
         sb_spec = self._get_storyboard_spec()
         if not sb_spec:
             logger.warning('Could not find thumbframes for video {}'.format(self.video_id))
             return dict()
 
-        return self._get_storyboards_from_spec(self.video_id, sb_spec)
+        return self._get_storyboards_from_spec(sb_spec)

@@ -4,7 +4,7 @@
 Each website handles thumbframes in a unique way, so for each supported website we need to implement a [WebsiteFrames](extractors.md#extractors._base.WebsiteFrames) subclass.  
 
 ### YouTubeFrames
-YouTube can return thumbframes images in different formats, such as:
+YouTube can return thumbframes images (a.k.a. storyboards) in different formats, such as:
 * **L0**: A single small image with a 10x10 grid.  
 * **L1**: A set of bigger images with a 10x10 grid each.  
 * **L2**: A set of bigger images with a 5x5 grid each.  
